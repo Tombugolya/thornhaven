@@ -43,6 +43,7 @@ export const encounters = [
       "WARNING: Hold Person + Inflict Wounds can KO level 3 PC. Pull if unfun.",
       "Sandwich thug has disadvantage Round 1",
       "Tone shift: The Lieutenant is genuinely dangerous",
+      "Locked Room (DC 13 Thieves' Tools): Lira Crenn is inside — furious, sarcastic, subsisting on salt crackers and resentment. She has critical info about the altar and caves.",
     ],
   },
   {
