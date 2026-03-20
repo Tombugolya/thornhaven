@@ -33,6 +33,8 @@ export const sessions = [
         type: "notes",
         content: `The player arrives at dusk. Thornhaven is quiet — conspicuously, performatively quiet. Two fishermen see the player and immediately start whistling and looking at the sky.
 
+**The natural flow:** The player walks into town → asks around about Voss → gets the "he's ill" runaround → heads to the Salted Eel (the only inn) for the night. They were sent here by Lord Aldenmere with a letter of introduction and enough coin for lodging. They're expected — Maren was told someone was coming.
+
 **Running gag:** Every NPC uses the exact same cover story — "The magistrate? Oh, he's ill. Very ill. Terribly ill." — delivered with varying degrees of conviction. Old Tam just says "He's dead" then corrects himself: "ILL. I meant ill. Those words sound alike."`,
       },
       {
@@ -52,7 +54,9 @@ export const sessions = [
       {
         title: "The Salted Eel (Tavern/Inn)",
         type: "location",
-        content: `**Berta Gruun** runs the inn. She talks about weather with manic energy when asked about anything else. If Voss is mentioned, she pivots to a 4-minute monologue about cloud formations.
+        content: `The Salted Eel is Thornhaven's only inn. **Berta Gruun** runs it. She's delighted to have a guest — the inn has been virtually empty for months (no visitors in a dying town). She talks about weather with manic energy when asked about anything else. If Voss is mentioned, she pivots to a 4-minute monologue about cloud formations.
+
+**The Room:** Berta gives the player her own room — it's the nicest one, and nobody else is staying here. "Take my room, I insist! I'll sleep in the kitchen. I like the kitchen. It's warm. Anyway, lovely barometric pressure tonight." This matters because the clue below is there *because it's Berta's room* — she's been careless with her own notes.
 
 **Clue — Journal Page:** Torn page wedged under a floorboard in the player's room (DC 10 Investigation):
 > "...the tides are wrong. V. knows. He's been down to the caves three times this week. I told Lira but she said to keep quiet or—" (torn)
