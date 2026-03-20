@@ -7,6 +7,7 @@ import {
   Swords,
   ScrollText,
   MessageSquareQuote,
+  Lightbulb,
 } from "lucide-react";
 import { sessions } from "../data/story";
 import ShowButton from "./ShowButton";
@@ -37,6 +38,7 @@ const sectionIcons = {
   combat: Swords,
   notes: ScrollText,
   map: MapPin,
+  dmtip: Lightbulb,
 };
 
 const sectionColors = {
@@ -45,6 +47,7 @@ const sectionColors = {
   combat: "border-l-danger/40",
   notes: "",
   map: "border-l-cave-cold/40",
+  dmtip: "border-l-warning/40",
 };
 
 function renderContent(content) {
@@ -134,6 +137,11 @@ function Section({ section }) {
               Read Aloud
             </span>
           )}
+          {section.type === "dmtip" && (
+            <span className="text-xs bg-warning/15 text-warning px-2 py-0.5 rounded-full">
+              DM Tip
+            </span>
+          )}
         </span>
       </button>
 
@@ -144,6 +152,10 @@ function Section({ section }) {
               <p className="text-gold-light/90 leading-relaxed italic font-[family-name:var(--font-display)] text-[15px]">
                 {section.content}
               </p>
+            </div>
+          ) : section.type === "dmtip" ? (
+            <div className="bg-warning/5 border border-warning/15 rounded-lg p-4 space-y-1">
+              {renderContent(section.content)}
             </div>
           ) : section.type === "map" ? (
             <pre className="bg-bg-base rounded-lg p-4 text-parchment-dim font-[family-name:var(--font-mono)] text-sm leading-relaxed overflow-x-auto">
