@@ -209,6 +209,117 @@ function CombatantRow({ combatant, onHpChange, onInitiativeChange }) {
   );
 }
 
+function MapControlPanel({ encounter }) {
+  const { showToPlayer, playerCount } = useBroadcast()
+  const map = battleMaps[encounter.id]
+  const [mapShowing, setMapShowing] = useState(false)
+  const [revealed, setRevealed] = useState(new Set())
+
+  if (!map || playerCount === 0) return null
+
+  const enemies = Object.entries(map.tokens).filter(([, t]) => !t.ally)
+
+  const handleShowMap = () => {
+    showToPlayer("map", encounter.id)
+    setMapShowing(true)
+    setRevealed(new Set())
+  }
+
+  const handleReveal = (tokenId) => {
+    showToPlayer("reveal", null, { tokenId })
+    setRevealed(prev => new Set([...prev, tokenId]))
+  }
+
+  const handleRevealAll = () => {
+    enemies.forEach(([id]) => {
+      showToPlayer("reveal", null, { tokenId: id })
+    })
+    setRevealed(new Set(enemies.map(([id]) => id)))
+  }
+
+  return (
+    <div className="bg-info/5 border border-info/20 rounded-xl p-4 space-y-3">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Map className="w-4 h-4 text-info" />
+          <span className="text-sm font-semibold text-info">Player Map Controls</span>
+        </div>
+        <div className="flex items-center gap-2">
+          {mapShowing && enemies.length > 0 && (
+            <button
+              onClick={handleRevealAll}
+              className="flex items-center gap-1 px-2 py-1 rounded text-[10px] font-medium bg-purple-500/15 text-purple-400 border border-purple-500/20 hover:bg-purple-500/25 transition-colors cursor-pointer"
+            >
+              <Eye className="w-3 h-3" />
+              Reveal All
+            </button>
+          )}
+          <button
+            onClick={handleShowMap}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer ${
+              mapShowing
+                ? "bg-info/20 text-info border border-info/30"
+                : "bg-info/10 text-info/80 border border-info/20 hover:bg-info/20 hover:text-info"
+            }`}
+          >
+            <MonitorUp className="w-3.5 h-3.5" />
+            {mapShowing ? "Map Live" : "Show Map to Player"}
+          </button>
+        </div>
+      </div>
+
+      {mapShowing && (
+        <>
+          <div className="text-[10px] text-text-muted uppercase tracking-wider">
+            Reveal enemies one at a time — click to show on player's map
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            {enemies.map(([id, token]) => {
+              const isRevealed = revealed.has(id)
+              return (
+                <button
+                  key={id}
+                  onClick={() => !isRevealed && handleReveal(id)}
+                  className={`flex items-center gap-2.5 px-3 py-2 rounded-lg border text-left transition-all cursor-pointer ${
+                    isRevealed
+                      ? "bg-purple-500/10 border-purple-500/25"
+                      : "bg-bg-base/50 border-bg-elevated/40 hover:bg-bg-base hover:border-purple-500/20"
+                  }`}
+                >
+                  <div
+                    className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0"
+                    style={{
+                      backgroundColor: token.color + "22",
+                      color: token.color,
+                      border: `2px solid ${token.color}${isRevealed ? "88" : "44"}`,
+                    }}
+                  >
+                    {token.initials}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className={`text-xs font-medium ${isRevealed ? "text-parchment" : "text-parchment/60"}`}>
+                      {token.label}
+                    </div>
+                  </div>
+                  {isRevealed ? (
+                    <span className="text-[10px] text-purple-400 flex items-center gap-1">
+                      <Eye className="w-3 h-3" /> Visible
+                    </span>
+                  ) : (
+                    <span className="text-[10px] text-text-muted flex items-center gap-1">
+                      Hidden
+                    </span>
+                  )}
+                </button>
+              )
+            })}
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
 function EncounterPanel({ encounter }) {
   const [open, setOpen] = useState(false);
   const [combatants, setCombatants] = useState(() =>
@@ -291,8 +402,8 @@ function EncounterPanel({ encounter }) {
         <div className="px-5 pb-5 space-y-4">
           <p className="text-sm text-parchment/80">{encounter.description}</p>
 
-          {/* Map Control */}
-          <MapButton encounterId={encounter.id} />
+          {/* Map Control Panel */}
+          {battleMaps[encounter.id] && <MapControlPanel encounter={encounter} />}
 
           {/* Terrain */}
           {encounter.terrain && (

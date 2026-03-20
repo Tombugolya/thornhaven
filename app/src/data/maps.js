@@ -27,8 +27,8 @@ export const battleMaps = {
       { type: "obstacle", x: 520, y: 180, w: 25, h: 25, label: "Crate", shape: "rect" },
     ],
     terrainNotes: [
-      { label: "Cobblestone Road", note: "Normal terrain" },
-      { label: "Narrow Alley", note: "Squeezing — disadvantage on attacks" },
+      { label: "Cobblestone Road", note: "Worn stone underfoot" },
+      { label: "Narrow Alley", note: "Tight — hard to fight in" },
     ],
     tokens: {
       "thug-1": { x: 380, y: 160, label: "Thug", initials: "T1", color: "#95a5a6", ally: false },
@@ -61,9 +61,9 @@ export const battleMaps = {
       // Trapdoor (entrance)
       { type: "entrance", x: 320, y: 60, w: 60, h: 60, label: "Trapdoor\n(entrance)" },
       // Locked room
-      { type: "room", x: 50, y: 370, w: 200, h: 180, label: "Locked Room\n(Lira is here)", color: "#1a1210", border: "#8a6e1a" },
+      { type: "room", x: 50, y: 370, w: 200, h: 180, label: "Locked Room", color: "#1a1210", border: "#8a6e1a" },
       // Locked door
-      { type: "door", x: 250, y: 420, w: 8, h: 40, label: "Locked\nDC 13" },
+      { type: "door", x: 250, y: 420, w: 8, h: 40, label: "Locked" },
       // Lanterns
       { type: "lantern", x: 350, y: 230, radius: 120, color: "#d08020" },
       { type: "lantern", x: 130, y: 460, radius: 50, color: "#a06010" },
@@ -72,9 +72,9 @@ export const battleMaps = {
       { type: "obstacle", x: 540, y: 460, w: 40, h: 30, label: "", shape: "rect" },
     ],
     terrainNotes: [
-      { label: "Meeting Room", note: "Tight quarters — favor melee" },
-      { label: "Locked Room", note: "DC 13 Thieves' Tools" },
-      { label: "Crates", note: "Half cover" },
+      { label: "Meeting Room", note: "Tight quarters — close combat" },
+      { label: "Locked Room", note: "A heavy iron door, shut tight" },
+      { label: "Crates", note: "Stacked supplies" },
     ],
     tokens: {
       "thug-3": { x: 300, y: 350, label: "Thug (sandwich)", initials: "T1", color: "#95a5a6", ally: false },
@@ -98,9 +98,9 @@ export const battleMaps = {
       // Cave walls (irregular)
       { type: "cave", points: "0,0 800,0 800,700 0,700", innerPoints: "80,80 720,60 750,350 700,640 100,660 60,400", color: "#0a0a18" },
       // Water (lower half)
-      { type: "water", x: 60, y: 350, w: 680, h: 310, label: "Waist-Deep Water\n(difficult terrain)", color: "#0a1428" },
+      { type: "water", x: 60, y: 350, w: 680, h: 310, label: "Waist-Deep Water", color: "#0a1428" },
       // Altar
-      { type: "altar", x: 340, y: 160, w: 120, h: 80, label: "Black Stone Altar\n(half cover)", color: "#0e0e20" },
+      { type: "altar", x: 340, y: 160, w: 120, h: 80, label: "Black Stone Altar", color: "#0e0e20" },
       // Cave entrance
       { type: "entrance", x: 360, y: 640, w: 80, h: 60, label: "Passage\n(entrance)" },
       // Stalactites
@@ -113,8 +113,8 @@ export const battleMaps = {
       { type: "shimmer", x: 400, y: 500, radius: 200, color: "#1a3050" },
     ],
     terrainNotes: [
-      { label: "Waist-Deep Water", note: "Difficult terrain — bottom half of chamber" },
-      { label: "Black Stone Altar", note: "Half cover (+2 AC, +2 DEX saves)" },
+      { label: "Waist-Deep Water", note: "Cold. Heavy. Slows movement." },
+      { label: "Black Stone Altar", note: "Ancient. The carvings seem to shift." },
       { label: "Water Surface", note: "Unnaturally still. No ripples." },
     ],
     tokens: {

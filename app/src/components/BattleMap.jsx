@@ -288,37 +288,19 @@ export default function BattleMap({ map, revealedTokens }) {
   const allTokens = Object.entries(map.tokens)
 
   return (
-    <div className="h-screen w-screen flex flex-col items-center justify-center relative overflow-hidden"
+    <div className="h-screen w-screen relative overflow-hidden"
       style={{ background: `linear-gradient(160deg, ${map.background.gradient.join(", ")})` }}>
 
-      {/* Vignette */}
-      <div className="absolute inset-0 pointer-events-none" style={{
-        background: "radial-gradient(ellipse at center, transparent 50%, rgba(0,0,0,0.7) 100%)",
-      }} />
-
-      {/* Header */}
-      <div className={`relative z-10 text-center mb-4 transition-all duration-1000 ${
-        entered ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-4"
-      }`}>
-        <h1 className="font-[family-name:var(--font-display)] text-2xl md:text-3xl font-bold text-gold tracking-wider"
-          style={{ textShadow: "0 0 30px rgba(201,162,39,0.2)" }}>
-          {map.name}
-        </h1>
-        <p className="text-parchment/30 text-xs tracking-[0.3em] uppercase mt-1">
-          {map.subtitle}
-        </p>
-      </div>
-
-      {/* Map */}
-      <div className={`relative z-10 transition-all duration-1000 delay-300 ${
+      {/* Full-screen map */}
+      <div className={`absolute inset-0 flex items-center justify-center p-4 transition-all duration-1000 delay-300 ${
         entered ? "opacity-100 scale-100" : "opacity-0 scale-95"
       }`}>
         <svg
           viewBox={`0 0 ${map.width} ${map.height}`}
-          className="w-full max-w-4xl max-h-[70vh] rounded-xl"
+          className="w-full h-full rounded-xl"
+          preserveAspectRatio="xMidYMid meet"
           style={{
-            filter: "drop-shadow(0 0 40px rgba(0,0,0,0.8))",
-            border: "1px solid rgba(201,162,39,0.1)",
+            filter: "drop-shadow(0 0 60px rgba(0,0,0,0.9))",
           }}
         >
           {/* Background */}
@@ -339,12 +321,34 @@ export default function BattleMap({ map, revealedTokens }) {
         </svg>
       </div>
 
-      {/* Terrain notes */}
-      <div className={`relative z-10 flex gap-4 mt-4 flex-wrap justify-center transition-all duration-1000 delay-700 ${
+      {/* Vignette overlay */}
+      <div className="absolute inset-0 pointer-events-none" style={{
+        background: "radial-gradient(ellipse at center, transparent 60%, rgba(0,0,0,0.5) 100%)",
+      }} />
+
+      {/* Header overlay — top */}
+      <div className={`absolute top-0 left-0 right-0 z-10 text-center pt-5 pb-8 pointer-events-none transition-all duration-1000 ${
+        entered ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-4"
+      }`} style={{
+        background: "linear-gradient(to bottom, rgba(0,0,0,0.7) 0%, transparent 100%)",
+      }}>
+        <h1 className="font-[family-name:var(--font-display)] text-xl md:text-2xl font-bold text-gold tracking-wider"
+          style={{ textShadow: "0 0 30px rgba(201,162,39,0.3)" }}>
+          {map.name}
+        </h1>
+        <p className="text-parchment/30 text-[10px] tracking-[0.3em] uppercase mt-1">
+          {map.subtitle}
+        </p>
+      </div>
+
+      {/* Terrain notes — bottom */}
+      <div className={`absolute bottom-0 left-0 right-0 z-10 flex gap-3 justify-center px-4 pt-8 pb-4 pointer-events-none transition-all duration-1000 delay-700 ${
         entered ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
-      }`}>
+      }`} style={{
+        background: "linear-gradient(to top, rgba(0,0,0,0.7) 0%, transparent 100%)",
+      }}>
         {map.terrainNotes.map((tn, i) => (
-          <div key={i} className="bg-bg-surface/40 border border-bg-elevated/30 rounded-lg px-3 py-1.5 backdrop-blur-sm">
+          <div key={i} className="bg-black/40 border border-parchment/10 rounded-lg px-3 py-1.5 backdrop-blur-sm">
             <span className="text-parchment/60 text-xs font-medium">{tn.label}: </span>
             <span className="text-parchment/40 text-xs italic">{tn.note}</span>
           </div>
