@@ -381,6 +381,13 @@ export default function BattleMap({ map, revealedTokens, tokenPositions = {}, ro
     >
       <rect width={map.width} height={map.height} fill={map.background.gradient[0]} rx="8" />
       <RenderFeatures features={map.features} mapWidth={map.width} mapHeight={map.height} />
+      {/* Grid overlay — 40px = 5ft square */}
+      <defs>
+        <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+          <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#ffffff" strokeWidth="0.5" opacity="0.07" />
+        </pattern>
+      </defs>
+      <rect width={map.width} height={map.height} fill="url(#grid)" rx="8" style={{ pointerEvents: "none" }} />
       {allTokens.map(([id, token]) => (
         <Token
           key={id}
