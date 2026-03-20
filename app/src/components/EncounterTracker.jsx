@@ -12,8 +12,13 @@ import {
   Skull,
   Users,
   Zap,
+  Map,
+  Eye,
+  MonitorUp,
 } from "lucide-react";
 import { encounters } from "../data/encounters";
+import { battleMaps } from "../data/maps";
+import { useBroadcast } from "../hooks/useBroadcast";
 import ShowButton from "./ShowButton";
 
 function HPBar({ current, max }) {
@@ -30,6 +35,68 @@ function HPBar({ current, max }) {
       />
     </div>
   );
+}
+
+function RevealButton({ tokenId, label }) {
+  const { showToPlayer, playerCount } = useBroadcast()
+  const [sent, setSent] = useState(false)
+
+  if (playerCount === 0) return null
+
+  const handleClick = (e) => {
+    e.stopPropagation()
+    showToPlayer("reveal", null, { tokenId })
+    setSent(true)
+  }
+
+  return (
+    <button
+      onClick={handleClick}
+      className={`
+        inline-flex items-center gap-1 px-2 py-1 rounded text-[10px] font-medium
+        transition-all duration-200 cursor-pointer shrink-0
+        ${sent
+          ? "bg-purple-500/20 text-purple-400 border border-purple-500/30"
+          : "bg-purple-500/10 text-purple-400/70 border border-purple-500/15 hover:bg-purple-500/20 hover:text-purple-400"
+        }
+      `}
+      title={`Reveal ${label} on player map`}
+    >
+      <Eye className="w-3 h-3" />
+      {sent ? "Shown" : "Reveal"}
+    </button>
+  )
+}
+
+function MapButton({ encounterId }) {
+  const { showToPlayer, playerCount } = useBroadcast()
+  const [sent, setSent] = useState(false)
+
+  if (playerCount === 0 || !battleMaps[encounterId]) return null
+
+  const handleClick = (e) => {
+    e.stopPropagation()
+    showToPlayer("map", encounterId)
+    setSent(true)
+  }
+
+  return (
+    <button
+      onClick={handleClick}
+      className={`
+        inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium
+        transition-all duration-200 cursor-pointer
+        ${sent
+          ? "bg-info/20 text-info border border-info/30"
+          : "bg-info/10 text-info/70 border border-info/15 hover:bg-info/20 hover:text-info"
+        }
+      `}
+      title="Show battle map to player"
+    >
+      <Map className="w-3.5 h-3.5" />
+      {sent ? "Map Showing" : "Show Map"}
+    </button>
+  )
 }
 
 function CombatantRow({ combatant, onHpChange, onInitiativeChange }) {
@@ -87,6 +154,9 @@ function CombatantRow({ combatant, onHpChange, onInitiativeChange }) {
               <span className="text-[10px] bg-success/15 text-success-light px-1.5 py-0.5 rounded-full">
                 Ally
               </span>
+            )}
+            {!combatant.isAlly && (
+              <RevealButton tokenId={combatant.id} label={combatant.name} />
             )}
           </div>
           <div className="flex items-center gap-3 text-xs text-text-muted">
@@ -220,6 +290,9 @@ function EncounterPanel({ encounter }) {
       {open && (
         <div className="px-5 pb-5 space-y-4">
           <p className="text-sm text-parchment/80">{encounter.description}</p>
+
+          {/* Map Control */}
+          <MapButton encounterId={encounter.id} />
 
           {/* Terrain */}
           {encounter.terrain && (

@@ -85,7 +85,7 @@ export const characterVisuals = {
   maren: {
     name: "Maren Ashwick",
     title: "Your Local Contact",
-    description: "Deadpan. Competent. Exhausted by this entire town.",
+    description: "A sturdy woman with calloused hands and an expression that suggests she's been waiting for you — and isn't thrilled about it.",
     gradient: ["#0a1020", "#122040", "#1a3060", "#0d1830"],
     accentColor: "#3498db",
     symbol: "shield",
@@ -94,7 +94,7 @@ export const characterVisuals = {
   selen: {
     name: "Selen Dray",
     title: "Harbormaster of Thornhaven",
-    description: "She isn't a villain. She's a civic leader who committed crimes.",
+    description: "A tall, sharp-eyed woman in a salt-stained coat. She carries herself like someone used to being obeyed.",
     gradient: ["#1a0a20", "#2d1040", "#3d1854", "#1a0830"],
     accentColor: "#8e44ad",
     symbol: "anchor",
@@ -102,8 +102,8 @@ export const characterVisuals = {
   },
   voss: {
     name: "Magistrate Harlan Voss",
-    title: "The Missing Magistrate",
-    description: "Dignified fury, chained to a rock for six weeks.",
+    title: "Magistrate of Thornhaven",
+    description: "A gaunt man in filthy shirtsleeves, blinking against the light. His posture is dignified despite everything.",
     gradient: ["#0a0a14", "#181828", "#20203a", "#101020"],
     accentColor: "#bdc3c7",
     symbol: "quill",
@@ -112,7 +112,7 @@ export const characterVisuals = {
   lira: {
     name: "Lira Crenn",
     title: "Alchemist",
-    description: "Sharp. Furious. The only one who understands the real danger.",
+    description: "A woman in her mid-thirties with ink-stained fingers and an expression that could curdle milk. She looks like she hasn't slept in weeks.",
     gradient: ["#0a1a10", "#103020", "#184830", "#0d2018"],
     accentColor: "#27ae60",
     symbol: "flask",
@@ -121,7 +121,7 @@ export const characterVisuals = {
   berta: {
     name: "Berta Gruun",
     title: "Innkeeper of the Salted Eel",
-    description: "Have you noticed the cloud formations today? Simply remarkable.",
+    description: "A round-faced woman with flour on her apron and a smile that's working a little too hard. She seems delighted to see you. Very delighted. Suspiciously delighted.",
     gradient: ["#1a1008", "#2a1a10", "#3a2818", "#201408"],
     accentColor: "#e67e22",
     symbol: "mug",
@@ -130,7 +130,7 @@ export const characterVisuals = {
   tam: {
     name: "Old Tam",
     title: "Fisherman",
-    description: "He's seen everything. He cares about nothing. He's fishing.",
+    description: "An ancient man sitting at the end of the dock with a fishing rod and the energy of someone who has been here since before the dock was built.",
     gradient: ["#0a0e12", "#141a20", "#1e2830", "#101418"],
     accentColor: "#7f8c8d",
     symbol: "fish",
@@ -138,17 +138,17 @@ export const characterVisuals = {
   },
   edric: {
     name: "Edric Ashwick",
-    title: "Maren's Brother",
-    description: "A golden retriever who joined a cult.",
+    title: "A Young Man",
+    description: "Barely twenty, with the same jawline as Maren. He looks like he's been caught doing something he shouldn't.",
     gradient: ["#0a1428", "#142840", "#1e3c58", "#0d1c34"],
     accentColor: "#2980b9",
     symbol: "spear",
     mood: "earnest",
   },
   thug: {
-    name: "Undertow Thugs",
+    name: "Cloaked Figures",
     title: "The Undertow",
-    description: "They signed up for gold. There has not been gold.",
+    description: "Dark cloaks, spiral wave symbols. They are trying very hard to look intimidating. One of them is breathing loudly.",
     gradient: ["#0d0d10", "#1a1a20", "#242430", "#141418"],
     accentColor: "#95a5a6",
     symbol: "wave",
@@ -156,8 +156,8 @@ export const characterVisuals = {
   },
   cultfanatic: {
     name: "The Lieutenant",
-    title: "The True Believer",
-    description: "The one competent member. She doesn't shout. That's what makes her scary.",
+    title: "Undertow Leader",
+    description: "A woman who stands perfectly still while the others fidget. Her eyes are calm. She is the only one in this room who is not afraid.",
     gradient: ["#1a0808", "#2e1010", "#3d1818", "#200a0a"],
     accentColor: "#c0392b",
     symbol: "spiral",

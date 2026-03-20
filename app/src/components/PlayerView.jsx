@@ -1,12 +1,16 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useBroadcast } from "../hooks/useBroadcast"
 import { locationVisuals, characterVisuals, combatVisuals } from "../data/visuals"
+import { battleMaps } from "../data/maps"
 import SceneDisplay from "./SceneDisplay"
+import BattleMap from "./BattleMap"
 
 export default function PlayerView() {
   const { lastMessage, connected } = useBroadcast()
   const [scene, setScene] = useState(null)
   const [transitioning, setTransitioning] = useState(false)
+  const [activeMap, setActiveMap] = useState(null)
+  const [revealedTokens, setRevealedTokens] = useState(new Set())
 
   useEffect(() => {
     if (!lastMessage) return
@@ -15,11 +19,35 @@ export default function PlayerView() {
       setTransitioning(true)
       setTimeout(() => {
         setScene(null)
+        setActiveMap(null)
+        setRevealedTokens(new Set())
         setTransitioning(false)
       }, 600)
       return
     }
 
+    // Map reveal — show battle map
+    if (lastMessage.type === "map") {
+      const map = battleMaps[lastMessage.id]
+      if (map) {
+        setTransitioning(true)
+        setTimeout(() => {
+          setScene(null)
+          setActiveMap(map)
+          setRevealedTokens(new Set())
+          setTransitioning(false)
+        }, 600)
+      }
+      return
+    }
+
+    // Token reveal — add a token to current map
+    if (lastMessage.type === "reveal") {
+      setRevealedTokens(prev => new Set([...prev, lastMessage.tokenId]))
+      return
+    }
+
+    // Scene reveals (location, character, combat splash)
     let visual = null
     if (lastMessage.type === "location") {
       visual = locationVisuals[lastMessage.id]
@@ -35,6 +63,8 @@ export default function PlayerView() {
     if (visual) {
       setTransitioning(true)
       setTimeout(() => {
+        setActiveMap(null)
+        setRevealedTokens(new Set())
         setScene(visual)
         setTransitioning(false)
       }, 600)
@@ -46,7 +76,7 @@ export default function PlayerView() {
       {/* Connection indicator */}
       <div className="fixed top-4 right-4 z-50">
         <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs transition-opacity duration-1000 ${
-          scene ? 'opacity-0' : 'opacity-60'
+          scene || activeMap ? 'opacity-0' : 'opacity-60'
         }`}>
           <div className={`w-2 h-2 rounded-full ${connected ? 'bg-success animate-pulse' : 'bg-danger'}`} />
           <span className="text-parchment/40">
@@ -62,8 +92,10 @@ export default function PlayerView() {
         }`}
       />
 
-      {/* Scene or idle */}
-      {scene ? (
+      {/* Content */}
+      {activeMap ? (
+        <BattleMap map={activeMap} revealedTokens={revealedTokens} />
+      ) : scene ? (
         <SceneDisplay scene={scene} />
       ) : (
         <IdleScreen />
@@ -75,12 +107,9 @@ export default function PlayerView() {
 function IdleScreen() {
   return (
     <div className="h-screen w-screen flex flex-col items-center justify-center relative overflow-hidden">
-      {/* Animated background */}
       <div className="absolute inset-0" style={{
         background: "radial-gradient(ellipse at 50% 120%, #0d1b2a 0%, #070b14 50%, #020204 100%)",
       }} />
-
-      {/* Particles */}
       <div className="absolute inset-0 overflow-hidden">
         {Array.from({ length: 30 }).map((_, i) => (
           <div
@@ -97,8 +126,6 @@ function IdleScreen() {
           />
         ))}
       </div>
-
-      {/* Water shimmer at bottom */}
       <div className="absolute bottom-0 left-0 right-0 h-1/3" style={{
         background: "linear-gradient(to top, #0a1828 0%, transparent 100%)",
       }}>
@@ -107,8 +134,6 @@ function IdleScreen() {
           animation: "shimmerDrift 20s linear infinite",
         }} />
       </div>
-
-      {/* Title */}
       <div className="relative z-10 text-center px-8">
         <h1
           className="font-[family-name:var(--font-display)] text-5xl md:text-7xl font-bold tracking-wider mb-4"
@@ -125,15 +150,11 @@ function IdleScreen() {
           Awaiting the Dungeon Master
         </p>
       </div>
-
-      {/* Subtle spiral watermark */}
       <div className="absolute bottom-12 opacity-[0.03]">
         <svg width="200" height="200" viewBox="0 0 200 200">
           <path
             d="M100,100 m-80,0 a80,80 0 1,1 160,0 a80,80 0 1,1 -160,0 M100,100 m-55,0 a55,55 0 1,0 110,0 a55,55 0 1,0 -110,0 M100,100 m-30,0 a30,30 0 1,1 60,0 a30,30 0 1,1 -60,0"
-            fill="none"
-            stroke="#c9a227"
-            strokeWidth="1"
+            fill="none" stroke="#c9a227" strokeWidth="1"
           />
         </svg>
       </div>
