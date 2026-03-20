@@ -6,11 +6,13 @@ import SceneDisplay from "./SceneDisplay"
 import BattleMap from "./BattleMap"
 
 export default function PlayerView() {
-  const { lastMessage, connected } = useBroadcast()
+  const { lastMessage, connected, showToPlayer } = useBroadcast()
   const [scene, setScene] = useState(null)
   const [transitioning, setTransitioning] = useState(false)
   const [activeMap, setActiveMap] = useState(null)
   const [revealedTokens, setRevealedTokens] = useState(new Set())
+  const [tokenPositions, setTokenPositions] = useState({})
+  const [killedTokens, setKilledTokens] = useState(new Set())
 
   useEffect(() => {
     if (!lastMessage) return
@@ -21,6 +23,8 @@ export default function PlayerView() {
         setScene(null)
         setActiveMap(null)
         setRevealedTokens(new Set())
+        setTokenPositions({})
+        setKilledTokens(new Set())
         setTransitioning(false)
       }, 600)
       return
@@ -35,6 +39,7 @@ export default function PlayerView() {
           setScene(null)
           setActiveMap(map)
           setRevealedTokens(new Set())
+          setTokenPositions({})
           setTransitioning(false)
         }, 600)
       }
@@ -44,6 +49,21 @@ export default function PlayerView() {
     // Token reveal — add a token to current map
     if (lastMessage.type === "reveal") {
       setRevealedTokens(prev => new Set([...prev, lastMessage.tokenId]))
+      return
+    }
+
+    // Token move — update position from DM
+    if (lastMessage.type === "move") {
+      setTokenPositions(prev => ({
+        ...prev,
+        [lastMessage.tokenId]: { x: lastMessage.x, y: lastMessage.y },
+      }))
+      return
+    }
+
+    // Token kill — mark as dead
+    if (lastMessage.type === "kill") {
+      setKilledTokens(prev => new Set([...prev, lastMessage.tokenId]))
       return
     }
 
@@ -94,7 +114,17 @@ export default function PlayerView() {
 
       {/* Content */}
       {activeMap ? (
-        <BattleMap map={activeMap} revealedTokens={revealedTokens} />
+        <BattleMap
+          map={activeMap}
+          revealedTokens={new Set([...revealedTokens].filter(id => !killedTokens.has(id)))}
+          tokenPositions={tokenPositions}
+          role="player"
+          fullscreen
+          onTokenMove={(tokenId, x, y) => {
+            setTokenPositions(prev => ({ ...prev, [tokenId]: { x, y } }))
+            showToPlayer("move", null, { tokenId, x, y })
+          }}
+        />
       ) : scene ? (
         <SceneDisplay scene={scene} />
       ) : (

@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import {
   Swords,
   Heart,
@@ -20,6 +20,7 @@ import { encounters } from "../data/encounters";
 import { battleMaps } from "../data/maps";
 import { useBroadcast } from "../hooks/useBroadcast";
 import ShowButton from "./ShowButton";
+import BattleMap from "./BattleMap";
 
 function HPBar({ current, max }) {
   const pct = Math.max(0, Math.min(100, (current / max) * 100));
@@ -210,19 +211,33 @@ function CombatantRow({ combatant, onHpChange, onInitiativeChange }) {
 }
 
 function MapControlPanel({ encounter }) {
-  const { showToPlayer, playerCount } = useBroadcast()
+  const { showToPlayer, lastMessage, playerCount } = useBroadcast()
   const map = battleMaps[encounter.id]
   const [mapShowing, setMapShowing] = useState(false)
   const [revealed, setRevealed] = useState(new Set())
+  const [killed, setKilled] = useState(new Set())
+  const [tokenPositions, setTokenPositions] = useState({})
 
   if (!map || playerCount === 0) return null
 
   const enemies = Object.entries(map.tokens).filter(([, t]) => !t.ally)
 
+  // Listen for player moves
+  useEffect(() => {
+    if (lastMessage?.type === "move") {
+      setTokenPositions(prev => ({
+        ...prev,
+        [lastMessage.tokenId]: { x: lastMessage.x, y: lastMessage.y },
+      }))
+    }
+  }, [lastMessage])
+
   const handleShowMap = () => {
     showToPlayer("map", encounter.id)
     setMapShowing(true)
     setRevealed(new Set())
+    setKilled(new Set())
+    setTokenPositions({})
   }
 
   const handleReveal = (tokenId) => {
@@ -236,6 +251,19 @@ function MapControlPanel({ encounter }) {
     })
     setRevealed(new Set(enemies.map(([id]) => id)))
   }
+
+  const handleKill = (tokenId) => {
+    setKilled(prev => new Set([...prev, tokenId]))
+    showToPlayer("kill", null, { tokenId })
+  }
+
+  const handleTokenMove = (tokenId, x, y) => {
+    setTokenPositions(prev => ({ ...prev, [tokenId]: { x, y } }))
+    showToPlayer("move", null, { tokenId, x, y })
+  }
+
+  // Build revealed set excluding killed
+  const visibleTokens = new Set([...revealed].filter(id => !killed.has(id)))
 
   return (
     <div className="bg-info/5 border border-info/20 rounded-xl p-4 space-y-3">
@@ -270,47 +298,68 @@ function MapControlPanel({ encounter }) {
 
       {mapShowing && (
         <>
+          {/* DM Map Preview — drag tokens here! */}
           <div className="text-[10px] text-text-muted uppercase tracking-wider">
-            Reveal enemies one at a time — click to show on player's map
+            Drag tokens to move them — both sides see changes in real-time
           </div>
+          <BattleMap
+            map={map}
+            revealedTokens={visibleTokens}
+            tokenPositions={tokenPositions}
+            role="dm"
+            fullscreen={false}
+            onTokenMove={handleTokenMove}
+          />
+
+          {/* Enemy controls */}
           <div className="grid grid-cols-2 gap-2">
             {enemies.map(([id, token]) => {
               const isRevealed = revealed.has(id)
+              const isDead = killed.has(id)
               return (
-                <button
+                <div
                   key={id}
-                  onClick={() => !isRevealed && handleReveal(id)}
-                  className={`flex items-center gap-2.5 px-3 py-2 rounded-lg border text-left transition-all cursor-pointer ${
-                    isRevealed
+                  className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-left transition-all ${
+                    isDead
+                      ? "bg-danger/5 border-danger/20 opacity-50"
+                      : isRevealed
                       ? "bg-purple-500/10 border-purple-500/25"
-                      : "bg-bg-base/50 border-bg-elevated/40 hover:bg-bg-base hover:border-purple-500/20"
+                      : "bg-bg-base/50 border-bg-elevated/40"
                   }`}
                 >
                   <div
-                    className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0"
+                    className="w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-bold shrink-0"
                     style={{
-                      backgroundColor: token.color + "22",
-                      color: token.color,
-                      border: `2px solid ${token.color}${isRevealed ? "88" : "44"}`,
+                      backgroundColor: isDead ? "#c0392b22" : token.color + "22",
+                      color: isDead ? "#c0392b" : token.color,
+                      border: `2px solid ${isDead ? "#c0392b" : token.color}44`,
                     }}
                   >
-                    {token.initials}
+                    {isDead ? <Skull className="w-3 h-3" /> : token.initials}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className={`text-xs font-medium ${isRevealed ? "text-parchment" : "text-parchment/60"}`}>
+                    <div className={`text-xs font-medium ${isDead ? "text-danger line-through" : isRevealed ? "text-parchment" : "text-parchment/60"}`}>
                       {token.label}
                     </div>
                   </div>
-                  {isRevealed ? (
-                    <span className="text-[10px] text-purple-400 flex items-center gap-1">
-                      <Eye className="w-3 h-3" /> Visible
-                    </span>
-                  ) : (
-                    <span className="text-[10px] text-text-muted flex items-center gap-1">
-                      Hidden
-                    </span>
-                  )}
-                </button>
+                  <div className="flex items-center gap-1">
+                    {!isRevealed && !isDead && (
+                      <button onClick={() => handleReveal(id)}
+                        className="px-1.5 py-0.5 rounded text-[9px] font-medium bg-purple-500/15 text-purple-400 hover:bg-purple-500/25 cursor-pointer">
+                        Reveal
+                      </button>
+                    )}
+                    {isRevealed && !isDead && (
+                      <button onClick={() => handleKill(id)}
+                        className="px-1.5 py-0.5 rounded text-[9px] font-medium bg-danger/15 text-danger-light hover:bg-danger/25 cursor-pointer flex items-center gap-0.5">
+                        <Skull className="w-2.5 h-2.5" /> Kill
+                      </button>
+                    )}
+                    {isDead && (
+                      <span className="text-[9px] text-danger">Dead</span>
+                    )}
+                  </div>
+                </div>
               )
             })}
           </div>

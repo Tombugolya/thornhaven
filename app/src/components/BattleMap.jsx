@@ -1,7 +1,15 @@
-import { useEffect, useState } from "react"
+import { useEffect, useState, useRef, useCallback } from "react"
 
-function Token({ token, revealed, delay = 0 }) {
+function screenToSVG(svg, clientX, clientY) {
+  const pt = svg.createSVGPoint()
+  pt.x = clientX
+  pt.y = clientY
+  return pt.matrixTransform(svg.getScreenCTM().inverse())
+}
+
+function Token({ id, token, pos, revealed, delay = 0, draggable, onDragStart, onDrag, onDragEnd, draggingId }) {
   const [visible, setVisible] = useState(false)
+  const isDragging = draggingId === id
 
   useEffect(() => {
     if (revealed) {
@@ -12,6 +20,8 @@ function Token({ token, revealed, delay = 0 }) {
 
   if (!revealed) return null
 
+  const x = pos?.x ?? token.x
+  const y = pos?.y ?? token.y
   const r = 18
   const glowColor = token.ally ? token.color : "#ff4444"
 
@@ -20,30 +30,61 @@ function Token({ token, revealed, delay = 0 }) {
       style={{
         opacity: visible ? 1 : 0,
         transform: visible ? "scale(1)" : "scale(0.3)",
-        transformOrigin: `${token.x}px ${token.y}px`,
-        transition: "opacity 0.8s ease-out, transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)",
+        transformOrigin: `${x}px ${y}px`,
+        transition: isDragging
+          ? "none"
+          : "opacity 0.8s ease-out, transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)",
+        cursor: draggable ? (isDragging ? "grabbing" : "grab") : "default",
+        pointerEvents: draggable ? "auto" : "none",
+      }}
+      onPointerDown={(e) => {
+        if (!draggable) return
+        e.preventDefault()
+        e.stopPropagation()
+        e.currentTarget.setPointerCapture(e.pointerId)
+        onDragStart?.(id, e)
+      }}
+      onPointerMove={(e) => {
+        if (!isDragging) return
+        e.preventDefault()
+        onDrag?.(id, e)
+      }}
+      onPointerUp={(e) => {
+        if (!isDragging) return
+        e.currentTarget.releasePointerCapture(e.pointerId)
+        onDragEnd?.(id, e)
       }}
     >
+      {/* Drag ring */}
+      {isDragging && (
+        <circle cx={x} cy={y} r={r + 6} fill="none" stroke="#c9a227" strokeWidth="2" opacity="0.6">
+          <animate attributeName="r" values={`${r + 4};${r + 8};${r + 4}`} dur="1s" repeatCount="indefinite" />
+        </circle>
+      )}
       {/* Reveal glow */}
-      {!token.ally && (
-        <circle cx={token.x} cy={token.y} r={r + 12} fill={glowColor} opacity="0.15">
+      {!token.ally && !isDragging && (
+        <circle cx={x} cy={y} r={r + 12} fill={glowColor} opacity="0.15">
           <animate attributeName="r" values={`${r + 8};${r + 16};${r + 8}`} dur="3s" repeatCount="indefinite" />
           <animate attributeName="opacity" values="0.15;0.08;0.15" dur="3s" repeatCount="indefinite" />
         </circle>
       )}
       {/* Token shadow */}
-      <circle cx={token.x + 2} cy={token.y + 2} r={r} fill="black" opacity="0.4" />
+      <circle cx={x + 2} cy={y + 2} r={r} fill="black" opacity="0.4" />
       {/* Token body */}
-      <circle cx={token.x} cy={token.y} r={r} fill={token.color} opacity="0.9"
-        stroke={token.ally ? token.color : "#ff6666"} strokeWidth={token.ally ? 1.5 : 2.5} />
+      <circle cx={x} cy={y} r={r}
+        fill={token.color} opacity={isDragging ? 1 : 0.9}
+        stroke={isDragging ? "#c9a227" : token.ally ? token.color : "#ff6666"}
+        strokeWidth={isDragging ? 3 : token.ally ? 1.5 : 2.5} />
       {/* Initials */}
-      <text x={token.x} y={token.y + 1} textAnchor="middle" dominantBaseline="middle"
-        fill="white" fontSize="11" fontWeight="bold" fontFamily="Inter, sans-serif">
+      <text x={x} y={y + 1} textAnchor="middle" dominantBaseline="middle"
+        fill="white" fontSize="11" fontWeight="bold" fontFamily="Inter, sans-serif"
+        style={{ pointerEvents: "none" }}>
         {token.initials}
       </text>
       {/* Label below */}
-      <text x={token.x} y={token.y + r + 14} textAnchor="middle"
-        fill={token.color} fontSize="9" fontFamily="Inter, sans-serif" opacity="0.8">
+      <text x={x} y={y + r + 14} textAnchor="middle"
+        fill={token.color} fontSize="9" fontFamily="Inter, sans-serif" opacity="0.8"
+        style={{ pointerEvents: "none" }}>
         {token.label}
       </text>
     </g>
@@ -71,7 +112,6 @@ function RenderFeatures({ features, mapWidth, mapHeight }) {
         return (
           <g key={i}>
             <rect x={f.x} y={f.y} width={f.w} height={f.h} fill="#0c0c18" />
-            {/* Cobblestone pattern */}
             <pattern id="cobble" width="20" height="20" patternUnits="userSpaceOnUse">
               <rect width="20" height="20" fill="transparent" />
               <rect x="1" y="1" width="8" height="8" rx="1" fill="#14141f" opacity="0.5" />
@@ -127,30 +167,21 @@ function RenderFeatures({ features, mapWidth, mapHeight }) {
           </g>
         )
       case "wall":
-        return (
-          <g key={i}>
-            <rect x={f.x} y={f.y} width={f.w} height={f.h} fill={f.color || "#1a1510"}
-              stroke="#2a2520" strokeWidth="2" rx="3" />
-          </g>
-        )
+        return <g key={i}><rect x={f.x} y={f.y} width={f.w} height={f.h} fill={f.color || "#1a1510"} stroke="#2a2520" strokeWidth="2" rx="3" /></g>
       case "furniture":
         return (
           <g key={i}>
-            <rect x={f.x} y={f.y} width={f.w} height={f.h} fill={f.color || "#2a1f15"}
-              stroke="#3a2f20" strokeWidth="1.5" rx="3" />
+            <rect x={f.x} y={f.y} width={f.w} height={f.h} fill={f.color || "#2a1f15"} stroke="#3a2f20" strokeWidth="1.5" rx="3" />
             {f.label && (
               <text x={f.x + f.w / 2} y={f.y + f.h / 2} textAnchor="middle" dominantBaseline="middle"
-                fill="#665540" fontSize="9" fontFamily="Inter, sans-serif">
-                {f.label}
-              </text>
+                fill="#665540" fontSize="9" fontFamily="Inter, sans-serif">{f.label}</text>
             )}
           </g>
         )
       case "entrance":
         return (
           <g key={i}>
-            <rect x={f.x} y={f.y} width={f.w} height={f.h} fill="transparent"
-              stroke="#8a6e1a" strokeWidth="2" strokeDasharray="6 3" rx="4" />
+            <rect x={f.x} y={f.y} width={f.w} height={f.h} fill="transparent" stroke="#8a6e1a" strokeWidth="2" strokeDasharray="6 3" rx="4" />
             {f.label && (
               <text x={f.x + f.w / 2} y={f.y + f.h / 2} textAnchor="middle" dominantBaseline="middle"
                 fill="#8a6e1a" fontSize="8" fontFamily="Inter, sans-serif">
@@ -164,8 +195,7 @@ function RenderFeatures({ features, mapWidth, mapHeight }) {
       case "room":
         return (
           <g key={i}>
-            <rect x={f.x} y={f.y} width={f.w} height={f.h} fill={f.color || "#1a1210"}
-              stroke={f.border || "#2a2520"} strokeWidth="2" rx="2" />
+            <rect x={f.x} y={f.y} width={f.w} height={f.h} fill={f.color || "#1a1210"} stroke={f.border || "#2a2520"} strokeWidth="2" rx="2" />
             {f.label && (
               <text x={f.x + f.w / 2} y={f.y + f.h / 2} textAnchor="middle" dominantBaseline="middle"
                 fill={f.border || "#665540"} fontSize="9" fontFamily="Inter, sans-serif" fontStyle="italic">
@@ -181,7 +211,7 @@ function RenderFeatures({ features, mapWidth, mapHeight }) {
           <g key={i}>
             <rect x={f.x} y={f.y} width={f.w} height={f.h} fill="#8a6e1a" opacity="0.6" rx="1" />
             {f.label && (
-              <text x={f.x + f.w / 2 + 20} y={f.y + f.h / 2} textAnchor="start" dominantBaseline="middle"
+              <text x={f.x + f.w / 2 + 14} y={f.y + f.h / 2} textAnchor="start" dominantBaseline="middle"
                 fill="#8a6e1a" fontSize="8" fontFamily="Inter, sans-serif">
                 {f.label.split("\n").map((line, j) => (
                   <tspan key={j} x={f.x + f.w / 2 + 14} dy={j === 0 ? 0 : 11}>{line}</tspan>
@@ -202,7 +232,6 @@ function RenderFeatures({ features, mapWidth, mapHeight }) {
             </defs>
             <rect x={f.x} y={f.y} width={f.w} height={f.h} fill={f.color || "#0a1428"} opacity="0.7" rx="3" />
             <rect x={f.x} y={f.y} width={f.w} height={f.h} fill="url(#waterPattern)" rx="3" />
-            {/* Water edge line */}
             <line x1={f.x} y1={f.y} x2={f.x + f.w} y2={f.y} stroke="#1a4060" strokeWidth="2" opacity="0.4" />
             {f.label && (
               <text x={f.x + f.w / 2} y={f.y + 18} textAnchor="middle"
@@ -217,9 +246,7 @@ function RenderFeatures({ features, mapWidth, mapHeight }) {
       case "altar":
         return (
           <g key={i}>
-            <rect x={f.x} y={f.y} width={f.w} height={f.h} fill={f.color || "#0e0e20"}
-              stroke="#3a2a5a" strokeWidth="2" rx="3" />
-            {/* Spiral carving */}
+            <rect x={f.x} y={f.y} width={f.w} height={f.h} fill={f.color || "#0e0e20"} stroke="#3a2a5a" strokeWidth="2" rx="3" />
             <path
               d={`M${f.x + f.w / 2},${f.y + f.h / 2} m0,-15 a15,15 0 1,1 0,30 a10,10 0 1,0 0,-20 a5,5 0 1,1 0,10`}
               fill="none" stroke="#6a3fa5" strokeWidth="1" opacity="0.4">
@@ -238,9 +265,7 @@ function RenderFeatures({ features, mapWidth, mapHeight }) {
       case "cave":
         return (
           <g key={i}>
-            {/* Outer cave (full area) */}
             <rect x="0" y="0" width="800" height="700" fill="#030308" />
-            {/* Inner cave floor */}
             <polygon points={f.innerPoints} fill={f.color || "#0a0a18"} stroke="#181830" strokeWidth="2" />
           </g>
         )
@@ -278,55 +303,127 @@ function RenderFeatures({ features, mapWidth, mapHeight }) {
   })
 }
 
-export default function BattleMap({ map, revealedTokens }) {
+/**
+ * BattleMap — renders an atmospheric SVG map with draggable tokens.
+ *
+ * Props:
+ *  - map: map data from maps.js
+ *  - revealedTokens: Set of token IDs that are visible
+ *  - tokenPositions: { [id]: { x, y } } overrides from remote moves
+ *  - role: "dm" | "player" — determines which tokens are draggable
+ *  - onTokenMove: (tokenId, x, y) => void — called during/after drag
+ *  - fullscreen: boolean — true for player view (fills screen), false for DM embed
+ */
+export default function BattleMap({ map, revealedTokens, tokenPositions = {}, role = "player", onTokenMove, fullscreen = true }) {
   const [entered, setEntered] = useState(false)
+  const [draggingId, setDraggingId] = useState(null)
+  const [localPositions, setLocalPositions] = useState({})
+  const svgRef = useRef(null)
+  const throttleRef = useRef(0)
+
   useEffect(() => {
     const t = setTimeout(() => setEntered(true), 100)
     return () => clearTimeout(t)
   }, [])
 
+  // Merge positions: map defaults < remote overrides < local drag
+  const getPos = useCallback((id, token) => {
+    if (localPositions[id]) return localPositions[id]
+    if (tokenPositions[id]) return tokenPositions[id]
+    return { x: token.x, y: token.y }
+  }, [localPositions, tokenPositions])
+
+  const handleDragStart = useCallback((id, e) => {
+    setDraggingId(id)
+  }, [])
+
+  const handleDrag = useCallback((id, e) => {
+    if (!svgRef.current) return
+    const pt = screenToSVG(svgRef.current, e.clientX, e.clientY)
+    const newPos = { x: Math.round(pt.x), y: Math.round(pt.y) }
+    setLocalPositions(prev => ({ ...prev, [id]: newPos }))
+
+    // Throttle network sends to every 50ms
+    const now = Date.now()
+    if (now - throttleRef.current > 50) {
+      throttleRef.current = now
+      onTokenMove?.(id, newPos.x, newPos.y)
+    }
+  }, [onTokenMove])
+
+  const handleDragEnd = useCallback((id) => {
+    setDraggingId(null)
+    const pos = localPositions[id]
+    if (pos) {
+      onTokenMove?.(id, pos.x, pos.y)
+    }
+  }, [localPositions, onTokenMove])
+
+  const isDraggable = useCallback((id, token) => {
+    if (role === "dm") return true // DM can drag everything
+    if (role === "player" && id === "player") return true // Player drags their own token
+    return false
+  }, [role])
+
   const allTokens = Object.entries(map.tokens)
 
+  const svgContent = (
+    <svg
+      ref={svgRef}
+      viewBox={`0 0 ${map.width} ${map.height}`}
+      className={fullscreen ? "w-full h-full" : "w-full"}
+      preserveAspectRatio="xMidYMid meet"
+      style={{
+        filter: fullscreen ? "drop-shadow(0 0 60px rgba(0,0,0,0.9))" : "none",
+        borderRadius: fullscreen ? "0.75rem" : "0.5rem",
+        touchAction: "none",
+      }}
+    >
+      <rect width={map.width} height={map.height} fill={map.background.gradient[0]} rx="8" />
+      <RenderFeatures features={map.features} mapWidth={map.width} mapHeight={map.height} />
+      {allTokens.map(([id, token]) => (
+        <Token
+          key={id}
+          id={id}
+          token={token}
+          pos={getPos(id, token)}
+          revealed={token.autoReveal || revealedTokens.has(id) || role === "dm"}
+          delay={token.autoReveal ? 800 : 200}
+          draggable={isDraggable(id, token)}
+          draggingId={draggingId}
+          onDragStart={handleDragStart}
+          onDrag={handleDrag}
+          onDragEnd={handleDragEnd}
+        />
+      ))}
+    </svg>
+  )
+
+  if (!fullscreen) {
+    // DM embedded view — no overlays, just the map
+    return (
+      <div className={`transition-all duration-500 ${entered ? "opacity-100" : "opacity-0"}`}
+        style={{ background: `linear-gradient(160deg, ${map.background.gradient.join(", ")})`, borderRadius: "0.5rem", padding: "4px" }}>
+        {svgContent}
+      </div>
+    )
+  }
+
+  // Player fullscreen view
   return (
     <div className="h-screen w-screen relative overflow-hidden"
       style={{ background: `linear-gradient(160deg, ${map.background.gradient.join(", ")})` }}>
 
-      {/* Full-screen map */}
       <div className={`absolute inset-0 flex items-center justify-center p-4 transition-all duration-1000 delay-300 ${
         entered ? "opacity-100 scale-100" : "opacity-0 scale-95"
       }`}>
-        <svg
-          viewBox={`0 0 ${map.width} ${map.height}`}
-          className="w-full h-full rounded-xl"
-          preserveAspectRatio="xMidYMid meet"
-          style={{
-            filter: "drop-shadow(0 0 60px rgba(0,0,0,0.9))",
-          }}
-        >
-          {/* Background */}
-          <rect width={map.width} height={map.height} fill={map.background.gradient[0]} rx="8" />
-
-          {/* Features */}
-          <RenderFeatures features={map.features} mapWidth={map.width} mapHeight={map.height} />
-
-          {/* Tokens */}
-          {allTokens.map(([id, token]) => (
-            <Token
-              key={id}
-              token={token}
-              revealed={token.autoReveal || revealedTokens.has(id)}
-              delay={token.autoReveal ? 800 : 200}
-            />
-          ))}
-        </svg>
+        {svgContent}
       </div>
 
-      {/* Vignette overlay */}
       <div className="absolute inset-0 pointer-events-none" style={{
         background: "radial-gradient(ellipse at center, transparent 60%, rgba(0,0,0,0.5) 100%)",
       }} />
 
-      {/* Header overlay — top */}
       <div className={`absolute top-0 left-0 right-0 z-10 text-center pt-5 pb-8 pointer-events-none transition-all duration-1000 ${
         entered ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-4"
       }`} style={{
@@ -341,7 +438,6 @@ export default function BattleMap({ map, revealedTokens }) {
         </p>
       </div>
 
-      {/* Terrain notes — bottom */}
       <div className={`absolute bottom-0 left-0 right-0 z-10 flex gap-3 justify-center px-4 pt-8 pb-4 pointer-events-none transition-all duration-1000 delay-700 ${
         entered ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
       }`} style={{

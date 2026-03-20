@@ -29,9 +29,9 @@ function wsRelayPlugin() {
 
         ws.on('message', (data) => {
           const msg = data.toString()
-          // Relay DM messages to all players
-          for (const [client, clientRole] of clients) {
-            if (client !== ws && client.readyState === 1 && clientRole === 'player') {
+          // Relay to all other clients (bidirectional for token moves)
+          for (const [client] of clients) {
+            if (client !== ws && client.readyState === 1) {
               client.send(msg)
             }
           }

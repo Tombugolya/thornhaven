@@ -119,7 +119,7 @@ export const battleMaps = {
     ],
     tokens: {
       "selen-1": { x: 400, y: 180, label: "Selen Dray", initials: "SD", color: "#8e44ad", ally: false },
-      "thug-6": { x: 280, y: 300, label: "Reluctant Thug", initials: "T1", color: "#95a5a6", ally: false },
+      "thug-6": { x: 280, y: 300, label: "Thug", initials: "T1", color: "#95a5a6", ally: false },
       "thug-7": { x: 520, y: 280, label: "Thug", initials: "T2", color: "#95a5a6", ally: false },
       "edric-1": { x: 450, y: 250, label: "Edric", initials: "EA", color: "#2980b9", ally: false },
       "maren": { x: 380, y: 580, label: "Maren", initials: "MA", color: "#3498db", ally: true, autoReveal: true },
