@@ -13,6 +13,7 @@ export default function PlayerView() {
   const [revealedTokens, setRevealedTokens] = useState(new Set())
   const [tokenPositions, setTokenPositions] = useState({})
   const [killedTokens, setKilledTokens] = useState(new Set())
+  const [victory, setVictory] = useState(null)
 
   useEffect(() => {
     if (!lastMessage) return
@@ -25,6 +26,7 @@ export default function PlayerView() {
         setRevealedTokens(new Set())
         setTokenPositions({})
         setKilledTokens(new Set())
+        setVictory(null)
         setTransitioning(false)
       }, 600)
       return
@@ -64,6 +66,12 @@ export default function PlayerView() {
     // Token kill — mark as dead
     if (lastMessage.type === "kill") {
       setKilledTokens(prev => new Set([...prev, lastMessage.tokenId]))
+      return
+    }
+
+    // Battle won!
+    if (lastMessage.type === "battleWon") {
+      setVictory(lastMessage.encounterName || "Battle")
       return
     }
 
@@ -112,6 +120,9 @@ export default function PlayerView() {
         }`}
       />
 
+      {/* Victory overlay */}
+      {victory && <VictoryScreen />}
+
       {/* Content */}
       {activeMap ? (
         <BattleMap
@@ -130,6 +141,133 @@ export default function PlayerView() {
       ) : (
         <IdleScreen />
       )}
+    </div>
+  )
+}
+
+function VictoryScreen() {
+  const [phase, setPhase] = useState(0) // 0=flash, 1=text, 2=particles
+
+  useEffect(() => {
+    const t1 = setTimeout(() => setPhase(1), 400)
+    const t2 = setTimeout(() => setPhase(2), 1000)
+    return () => { clearTimeout(t1); clearTimeout(t2) }
+  }, [])
+
+  // Generate golden particles once
+  const particles = useState(() =>
+    Array.from({ length: 50 }).map((_, i) => ({
+      id: i,
+      x: 50 + (Math.random() - 0.5) * 30,
+      y: 50 + (Math.random() - 0.5) * 20,
+      size: 2 + Math.random() * 4,
+      angle: Math.random() * 360,
+      distance: 20 + Math.random() * 40,
+      duration: 2 + Math.random() * 3,
+      delay: Math.random() * 0.8,
+    }))
+  )[0]
+
+  return (
+    <div className="fixed inset-0 z-50 pointer-events-none flex items-center justify-center">
+      {/* Initial flash */}
+      <div
+        className="absolute inset-0 bg-gold/20 transition-opacity"
+        style={{
+          opacity: phase === 0 ? 1 : 0,
+          transitionDuration: "800ms",
+        }}
+      />
+
+      {/* Radial burst */}
+      <div
+        className="absolute inset-0 transition-opacity"
+        style={{
+          opacity: phase >= 1 ? 1 : 0,
+          transitionDuration: "1200ms",
+          background: "radial-gradient(circle at 50% 50%, rgba(201,162,39,0.12) 0%, transparent 60%)",
+        }}
+      />
+
+      {/* Golden particles flying outward */}
+      {phase >= 2 && particles.map((p) => (
+        <div
+          key={p.id}
+          className="absolute rounded-full"
+          style={{
+            left: `${p.x}%`,
+            top: `${p.y}%`,
+            width: p.size,
+            height: p.size,
+            backgroundColor: "#c9a227",
+            boxShadow: `0 0 ${p.size * 2}px #c9a227`,
+            animation: `victoryParticle ${p.duration}s ease-out ${p.delay}s forwards`,
+            "--vp-angle": `${p.angle}deg`,
+            "--vp-distance": `${p.distance}vh`,
+          }}
+        />
+      ))}
+
+      {/* Victory text */}
+      <div
+        className="relative text-center transition-all"
+        style={{
+          opacity: phase >= 1 ? 1 : 0,
+          transform: phase >= 1 ? "scale(1) translateY(0)" : "scale(0.5) translateY(20px)",
+          transitionDuration: "1000ms",
+          transitionTimingFunction: "cubic-bezier(0.34, 1.56, 0.64, 1)",
+        }}
+      >
+        {/* Glow behind text */}
+        <div className="absolute inset-0 -m-20 blur-3xl bg-gold/10 rounded-full" />
+
+        <div className="relative">
+          {/* Decorative line above */}
+          <div
+            className="w-24 h-px mx-auto mb-4 transition-all"
+            style={{
+              background: "linear-gradient(to right, transparent, #c9a227, transparent)",
+              opacity: phase >= 2 ? 1 : 0,
+              transitionDuration: "800ms",
+              transitionDelay: "400ms",
+              transform: phase >= 2 ? "scaleX(1)" : "scaleX(0)",
+            }}
+          />
+
+          <h1
+            className="font-[family-name:var(--font-display)] text-6xl md:text-8xl font-bold tracking-[0.15em]"
+            style={{
+              color: "#c9a227",
+              textShadow: "0 0 40px rgba(201,162,39,0.4), 0 0 80px rgba(201,162,39,0.15), 0 4px 20px rgba(0,0,0,0.5)",
+            }}
+          >
+            VICTORY
+          </h1>
+
+          {/* Decorative line below */}
+          <div
+            className="w-40 h-px mx-auto mt-4 transition-all"
+            style={{
+              background: "linear-gradient(to right, transparent, #c9a227, transparent)",
+              opacity: phase >= 2 ? 1 : 0,
+              transitionDuration: "800ms",
+              transitionDelay: "600ms",
+              transform: phase >= 2 ? "scaleX(1)" : "scaleX(0)",
+            }}
+          />
+
+          <p
+            className="text-parchment/40 text-sm tracking-[0.4em] uppercase mt-6 transition-all"
+            style={{
+              opacity: phase >= 2 ? 1 : 0,
+              transitionDuration: "800ms",
+              transitionDelay: "800ms",
+            }}
+          >
+            The battle is won
+          </p>
+        </div>
+      </div>
     </div>
   )
 }

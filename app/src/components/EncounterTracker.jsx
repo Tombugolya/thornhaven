@@ -253,8 +253,16 @@ function MapControlPanel({ encounter }) {
   }
 
   const handleKill = (tokenId) => {
-    setKilled(prev => new Set([...prev, tokenId]))
+    const newKilled = new Set([...killed, tokenId])
+    setKilled(newKilled)
     showToPlayer("kill", null, { tokenId })
+
+    // Check if all enemies are dead → victory!
+    if (newKilled.size === enemies.length) {
+      setTimeout(() => {
+        showToPlayer("battleWon", null, { encounterName: encounter.name })
+      }, 800)
+    }
   }
 
   const handleTokenMove = (tokenId, x, y) => {

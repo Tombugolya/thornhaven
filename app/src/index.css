@@ -82,3 +82,17 @@
   0%, 100% { opacity: 0.3; }
   50% { opacity: 1; }
 }
+
+@keyframes victoryParticle {
+  0% {
+    transform: translate(0, 0) scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(
+      calc(cos(var(--vp-angle)) * var(--vp-distance)),
+      calc(sin(var(--vp-angle)) * var(--vp-distance))
+    ) scale(0);
+    opacity: 0;
+  }
+}
