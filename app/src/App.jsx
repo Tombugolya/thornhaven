@@ -12,6 +12,8 @@ import {
   X,
 } from "lucide-react";
 import { BroadcastProvider, useBroadcast } from "./hooks/useBroadcast";
+import { CampaignProvider, useCampaign } from "./hooks/useCampaign";
+import { usePersistedState } from "./hooks/usePersistedState";
 import StoryTab from "./components/StoryTab";
 import CharactersTab from "./components/CharactersTab";
 import EncounterTracker from "./components/EncounterTracker";
@@ -28,7 +30,11 @@ const tabs = [
 ];
 
 function DmApp() {
-  const [activeTab, setActiveTab] = useState("story");
+  const { campaign } = useCampaign();
+  const [activeTab, setActiveTab] = usePersistedState(
+    `dm:${campaign.id}:activeTab`,
+    "story"
+  );
   const { connected, playerCount, clearPlayer } = useBroadcast();
 
   const playerUrl = useMemo(() => {
@@ -45,10 +51,10 @@ function DmApp() {
             <Map className="w-7 h-7 text-gold" />
             <div>
               <h1 className="font-[family-name:var(--font-display)] text-xl font-semibold text-gold tracking-wide">
-                The Silence of Thornhaven
+                {campaign.title}
               </h1>
               <p className="text-xs text-text-muted tracking-wider uppercase">
-                DM Companion — 5e Duet Campaign
+                DM Companion — {campaign.subtitle}
               </p>
             </div>
           </div>
@@ -134,7 +140,9 @@ function DmApp() {
 export default function App() {
   return (
     <BroadcastProvider role={isPlayerMode ? "player" : "dm"}>
-      {isPlayerMode ? <PlayerView /> : <DmApp />}
+      <CampaignProvider>
+        {isPlayerMode ? <PlayerView /> : <DmApp />}
+      </CampaignProvider>
     </BroadcastProvider>
   );
 }

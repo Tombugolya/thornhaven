@@ -17,6 +17,7 @@ export const sessions = [
       {
         title: "Opening Hook",
         type: "readAloud",
+        visual: { type: "location", id: "thornhaven-approach" },
         content: `The coastal road ends at a weathered signpost: THORNHAVEN — 1 MILE. The salt wind carries the smell of rotting kelp and something that might be bread, if someone were very bad at baking bread. You were sent by Lord Aldenmere to check on Magistrate Harlan Voss, who hasn't responded to three letters. Simple errand. Quick trip. The kind of job they give to people they don't want around the office for a week.`,
       },
       {
@@ -31,6 +32,7 @@ export const sessions = [
       {
         title: "Arrival at Dusk",
         type: "notes",
+        visual: { type: "location", id: "thornhaven-approach" },
         content: `The player arrives at dusk. Thornhaven is quiet — conspicuously, performatively quiet. Two fishermen see the player and immediately start whistling and looking at the sky.
 
 **The natural flow:** The player walks into town → asks around about Voss → gets the "he's ill" runaround → heads to the Salted Eel (the only inn) for the night. They were sent here by Lord Aldenmere with a letter of introduction and enough coin for lodging. They're expected — Maren was told someone was coming.
@@ -54,6 +56,7 @@ export const sessions = [
       {
         title: "The Salted Eel (Tavern/Inn)",
         type: "location",
+        visual: { type: "location", id: "salted-eel" },
         content: `The Salted Eel is Thornhaven's only inn. **Berta Gruun** runs it. She's delighted to have a guest — the inn has been virtually empty for months (no visitors in a dying town). She talks about weather with manic energy when asked about anything else. If Voss is mentioned, she pivots to a 4-minute monologue about cloud formations.
 
 **The Room:** Berta gives the player her own room — it's the nicest one, and nobody else is staying here. "Take my room, I insist! I'll sleep in the kitchen. I like the kitchen. It's warm. Anyway, lovely barometric pressure tonight." This matters because the clue below is there *because it's Berta's room* — she's been careless with her own notes.
@@ -77,6 +80,7 @@ export const sessions = [
       {
         title: "Magistrate's Manor",
         type: "location",
+        visual: { type: "location", id: "magistrates-manor" },
         content: `Front door locked. A note pinned in shaky handwriting: "GONE AWAY. VERY ILL. DO NOT ENTER. DEFINITELY NOT KIDNAPPED."
 
 **Getting in:** DC 15 Thieves' Tools or DC 18 Strength.
@@ -100,6 +104,7 @@ export const sessions = [
       {
         title: "The Docks",
         type: "location",
+        visual: { type: "location", id: "the-docks" },
         content: `**Old Tam** — elderly fisherman, the only honest person in town. Delivers truth with such casual disinterest that it sounds made up.
 
 "Oh aye, they've got a secret society. The Undertow, they call themselves. Meet on Tuesdays. Selen runs it. Terrible name if you ask me. Can I go back to my fish?"
@@ -146,6 +151,7 @@ She knows:
       {
         title: "Night Encounter",
         type: "combat",
+        visual: { type: "combat", id: "night-encounter" },
         content: `**2 Thugs** follow the player — wearing dark cloaks with the spiral wave symbol. They are not stealthy. One sneezes. The other whispers "SHUT UP" loud enough to echo off the cliffs.
 
 They attack if spotted, but fight with the energy of people who did NOT expect actual confrontation.
@@ -213,6 +219,7 @@ They attack if spotted, but fight with the energy of people who did NOT expect a
       {
         title: "Part 1: Finding Lira",
         type: "notes",
+        visual: { type: "location", id: "old-saltworks" },
         content: `**Lira Crenn** is held in the basement of the **Old Saltworks**.
 
 **Getting there:**
@@ -223,6 +230,7 @@ They attack if spotted, but fight with the energy of people who did NOT expect a
       {
         title: "The Saltworks",
         type: "location",
+        visual: { type: "location", id: "old-saltworks" },
         content: `**Ground floor:** Dusty, abandoned. Trapdoor (DC 12 Perception) leads down.
 
 **Basement:** Meeting room with table, chairs, and meeting minutes:
@@ -242,32 +250,9 @@ This is one of the biggest comedy moments in the campaign. The contrast between 
 **If the player searches the room:** They can also find a coded note (the alphabet shifted by 1 — A=B, B=C, etc.) and a lockbox with 25 gp. The code is intentionally trivial. These people are not criminal masterminds.`,
       },
       {
-        title: "Lira Crenn",
-        type: "readAloud",
-        content: `"Oh wonderful, a rescue. Only three weeks late. I've been subsisting on salt crackers and resentment."`,
-      },
-      {
-        title: "Playing Lira",
-        type: "dmtip",
-        content: `**Lira's voice:** Fast, sharp, clipped. She talks like she's giving a lecture that's already running over. Every sentence is a complaint wrapped in expertise.
-
-**The key moment with Lira is the tonal shift.** She's sarcastic and funny for the first few lines. Then you ask about the altar, and her demeanor changes. She gets quiet. She stops joking.
-
-**How to play the shift:** Slow down your speaking speed. Drop the rapid-fire delivery. Look the player in the eye (or at the camera if online). When she says "The water moves on its own down there," say it simply. No dramatic voice. Just... a person who is scared and trying not to show it.
-
-**That quiet moment is what makes the caves feel dangerous later.** If the scariest NPC — the angry, sarcastic scientist — is genuinely afraid, the player will be too.`,
-      },
-      {
-        title: "What Lira Knows",
-        type: "notes",
-        content: `- **Selen Dray** runs the Undertow. Found an ancient stone altar in sea caves.
-- Lira was forced to brew water-breathing potions for a flooded chamber.
-- "Harlan tried to stop them. He's either in the caves or... look, Selen isn't violent."
-- **THE SERIOUS PART:** "But the thing in the caves? That's not a joke. The water moves on its own down there. The inscriptions... I couldn't read them, but they made my teeth ache. Whatever's sealed down there was sealed for a reason."`,
-      },
-      {
         title: "Saltworks Combat",
         type: "combat",
+        visual: { type: "combat", id: "saltworks-rescue" },
         content: `**3 Thugs + 1 Cult Fanatic** (Undertow lieutenant — the only competent one)
 
 - One thug is mid-sandwich when the fight starts and fights one-handed for Round 1
@@ -291,6 +276,31 @@ This is one of the biggest comedy moments in the campaign. The contrast between 
 **The thugs should drop fast.** They're distractions. Focus the drama on the lieutenant.`,
       },
       {
+        title: "Lira Crenn",
+        type: "readAloud",
+        visual: { type: "character", id: "lira" },
+        content: `"Oh wonderful, a rescue. Only three weeks late. I've been subsisting on salt crackers and resentment."`,
+      },
+      {
+        title: "Playing Lira",
+        type: "dmtip",
+        content: `**Lira's voice:** Fast, sharp, clipped. She talks like she's giving a lecture that's already running over. Every sentence is a complaint wrapped in expertise.
+
+**The key moment with Lira is the tonal shift.** She's sarcastic and funny for the first few lines. Then you ask about the altar, and her demeanor changes. She gets quiet. She stops joking.
+
+**How to play the shift:** Slow down your speaking speed. Drop the rapid-fire delivery. Look the player in the eye (or at the camera if online). When she says "The water moves on its own down there," say it simply. No dramatic voice. Just... a person who is scared and trying not to show it.
+
+**That quiet moment is what makes the caves feel dangerous later.** If the scariest NPC — the angry, sarcastic scientist — is genuinely afraid, the player will be too.`,
+      },
+      {
+        title: "What Lira Knows",
+        type: "notes",
+        content: `- **Selen Dray** runs the Undertow. Found an ancient stone altar in sea caves.
+- Lira was forced to brew water-breathing potions for a flooded chamber.
+- "Harlan tried to stop them. He's either in the caves or... look, Selen isn't violent."
+- **THE SERIOUS PART:** "But the thing in the caves? That's not a joke. The water moves on its own down there. The inscriptions... I couldn't read them, but they made my teeth ache. Whatever's sealed down there was sealed for a reason."`,
+      },
+      {
         title: "Transition to the Caves",
         type: "dmtip",
         content: `**After the Saltworks fight, the player needs to go to the caves.** Lira provides the motivation: Voss is down there, and whatever Selen is doing needs to stop.
@@ -302,11 +312,13 @@ This is one of the biggest comedy moments in the campaign. The contrast between 
       {
         title: "The Caves",
         type: "notes",
+        visual: { type: "location", id: "cave-entrance" },
         content: `Sea caves accessible at low tide along the northern cliffs. The player has Voss's map.`,
       },
       {
         title: "Cave Map",
         type: "map",
+        visual: { type: "location", id: "cave-entrance" },
         content: `ENTRANCE (tidal, wet, slippery)
     |
 PASSAGE (60ft, bioluminescent algae)
@@ -333,6 +345,7 @@ ALTAR CHAMBER (large, partially flooded)`,
       {
         title: "Finding Voss",
         type: "readAloud",
+        visual: { type: "character", id: "voss" },
         content: `"I have been chained to a rock for six weeks by a woman who runs a fish-counting office. Do you have any idea how humiliating that is?"`,
       },
       {
@@ -351,6 +364,7 @@ ALTAR CHAMBER (large, partially flooded)`,
       {
         title: "The Altar Chamber",
         type: "notes",
+        visual: { type: "location", id: "altar-chamber" },
         content: `**The comedy fades here. This room should feel different.**
 
 - 40ft cavern, half-flooded. Water is unnaturally still — no ripples even when disturbed.
@@ -373,31 +387,75 @@ At the far end, rising from the stone floor, is an altar. Black stone. Covered i
       {
         title: "The Confrontation",
         type: "readAloud",
+        visual: { type: "character", id: "selen" },
         content: `"Thornhaven is dying. The fish are gone. The trade routes moved south. In five years this will be a ruin. What's in these caves could change that. Voss wanted to pretend the problem didn't exist. I chose to act."`,
       },
       {
-        title: "Playing Selen's Monologue",
+        title: "Selen Addresses the Danger",
+        type: "readAloud",
+        content: `"I know what the inscriptions say. 'Do not wake.' 'The patient tide.' Warnings carved by people who were afraid of what they didn't understand. I've studied this altar for months. It's not a monster — it's a source. Power that the founders were too cowardly to use. I'm not afraid of it. And neither should you be."`,
+      },
+      {
+        title: "The Pushback",
+        type: "notes",
+        content: `**Voss** (if freed at the fork): "She's found a lock and she's trying to open it. The founders built this entire town to keep people *away* from what's below. That's not cowardice — that's a warning we're too arrogant to hear."
+
+**Maren** (looking at the water): "Selen. Look at the water. It doesn't move. Whatever's down here — does that look like something you *control*?"
+
+**Selen's response:** "The water has been like that for centuries. Nothing has happened. Nothing will happen — unless we waste this chance arguing about superstition."
+
+The player now has both sides. Selen's argument: it's dormant, it's safe, the town needs this. The counter-argument: the founders sealed it for a reason, and the cave itself feels deeply wrong. **Let the player decide.**`,
+      },
+      {
+        title: "Playing the Confrontation",
         type: "dmtip",
-        content: `**Selen is NOT a villain speech.** She's making a case. She's calm, reasonable, and — here's the kicker — she's *right* about the problem. Thornhaven IS dying. She's just wrong about the solution.
+        content: `**Selen is NOT giving a villain speech.** She's making a case. She's calm, reasonable, and — here's the kicker — she's *right* about the problem. Thornhaven IS dying. She's just wrong about the solution.
 
 **Deliver her lines like a town council presentation.** Not dramatic. Not threatening. Just... a tired woman explaining why she did what she did. The player should feel uncomfortable because she makes *sense*.
 
-**Then the offer:** "Help me. Share in this. You could be a hero." Pause. Let the player respond. **Do not rush past this.** Some players will consider it. That's good. That means Selen worked.
+**The key difference from a typical D&D villain:** Selen genuinely doesn't believe the altar is dangerous. She's not reckless — she's convinced. She's done her research (badly). She's rationalized every warning sign. That's what makes her tragic, not evil.
+
+**Then the offer:** "Help me. Share in this. You could be a hero — the person who saved Thornhaven." Pause. Let the player respond. **Do not rush past this.** Some players will genuinely consider it. That's good. That means Selen worked.
 
 **The Edric reveal:** After Selen's pitch, describe: "And behind her, holding a spear with the posture of someone trying very hard to look brave... you see a young man with Maren's jawline." Then look at the player and wait. Maren's reaction: "...Oh. Oh, you *absolute* —"
 
 **This is the emotional climax.** The altar is scary, but Maren seeing her brother on the wrong side is what makes it *personal*. Give it space.`,
       },
       {
+        title: "If the Player Agrees with Selen",
+        type: "dmtip",
+        content: `**This can happen — and that's fine.** Selen is persuasive. If the player says "OK, let's try it" or even hesitates, here's what happens:
+
+**The altar reacts.** The moment anyone moves toward it with intent, the cave responds:
+- The still water *shudders* — not ripples, a single convulsive movement, like something beneath the surface turned over in its sleep.
+- The temperature drops sharply. Breath becomes visible.
+- The spiral carvings on the altar glow faintly — not warm light, but cold, like bioluminescence draining of color.
+- Everyone feels it: a pressure in their chest, a ringing in their ears, a sudden certainty that something *noticed them*.
+
+Then it stops. Everything goes still again. But the message is clear: **this thing is aware, and approaching it is waking it up.**
+
+**Selen's reaction:** She hesitates — for the first time all campaign, she looks uncertain. Then she sets her jaw: "That's... it's a defense mechanism. It's trying to scare us away. We push through." She's doubling down because admitting she's wrong means everything she did — the kidnapping, the cult, the crimes — was for nothing.
+
+**Maren:** "That wasn't a defense mechanism. That was something *breathing.*"
+
+**This gives the player a clear, visceral reason to refuse** even if they sympathized with Selen. The cave itself just told them no. If they STILL want to proceed, Maren refuses and draws her sword — "I'm not letting you open that thing." Combat begins with Maren on the player's... well, on the side of not ending the world.
+
+**Most players will change their mind after the altar reacts.** That's the design — give them a way to agree, then show them why they shouldn't, then let them choose again. No one feels railroaded because the *world* argued back, not the DM.`,
+      },
+      {
         title: "Confrontation Key Beats",
         type: "notes",
-        content: `1. **Selen offers a deal.** "Help me. Share in this. You could be a hero."
-2. **Edric sees Maren.** "Maren, I can explain—" / Maren: "Can you? Can you *really*?"
-3. **If refused:** Selen sighs like a disappointed manager and orders the attack.`,
+        content: `1. **Selen makes her case.** The town is dying. The altar is the answer. The warnings are just fear.
+2. **Voss/Maren push back.** The founders sealed this for a reason. The water doesn't move. This feels wrong.
+3. **Selen offers a deal.** "Help me. Share in this. You could be a hero."
+4. **Edric sees Maren.** "Maren, I can explain—" / Maren: "Can you? Can you *really*?"
+5. **If refused:** Selen shakes her head — "Then I'll do it without you." She turns back toward the altar. The player must stop her physically. Combat begins.
+6. **If agreed:** The altar reacts (see DM tip above). The cave itself vetoes the plan. Selen doubles down. The player must now choose again with new information.`,
       },
       {
         title: "Altar Chamber Combat",
         type: "combat",
+        visual: { type: "combat", id: "altar-chamber" },
         content: `| Enemy | Notes |
 |-------|-------|
 | **Selen Dray** (Bandit Captain) | Uses altar for cover (AC 17), kicks toward water |
@@ -421,8 +479,10 @@ At the far end, rising from the stone floor, is an altar. Black stone. Covered i
 
 **Layer 3 — The emotional fight:** Maren is frozen Round 1. She's watching her brother in a cave with criminals. On Round 2, she starts fighting but avoids Edric. If the player talks to Edric, Maren is visibly grateful.
 
+**How combat starts:** Selen turns back toward the altar — "Then I'll do it without you." The player has to physically stop her. If they grab her or move to block her, she draws her cutlass. It's not a rage — it's a decision. She's choosing the altar over reason. The thugs and Edric follow her lead, uncertainly.
+
 **Round-by-round suggestions:**
-- **Round 1:** Selen attacks. Edric hesitates. Maren freezes. Thug attacks. Set the scene.
+- **Round 1:** Selen attacks (she committed to this path). Edric hesitates. Maren freezes. Thug attacks. Set the scene.
 - **Round 2:** Player should have a chance to talk to Edric or the reluctant thug. Selen shoves someone toward the water.
 - **Round 3+:** Things resolve. Edric surrenders. The reluctant thug sits down. It comes down to Selen.
 

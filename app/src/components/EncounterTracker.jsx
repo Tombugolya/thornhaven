@@ -16,9 +16,9 @@ import {
   Eye,
   MonitorUp,
 } from "lucide-react";
-import { encounters } from "../data/encounters";
-import { battleMaps } from "../data/maps";
+import { useCampaign } from "../hooks/useCampaign";
 import { useBroadcast } from "../hooks/useBroadcast";
+import { usePersistedState } from "../hooks/usePersistedState";
 import ShowButton from "./ShowButton";
 import BattleMap from "./BattleMap";
 
@@ -70,10 +70,11 @@ function RevealButton({ tokenId, label }) {
 }
 
 function MapButton({ encounterId }) {
+  const { campaign } = useCampaign()
   const { showToPlayer, playerCount } = useBroadcast()
   const [sent, setSent] = useState(false)
 
-  if (playerCount === 0 || !battleMaps[encounterId]) return null
+  if (playerCount === 0 || !campaign.battleMaps[encounterId]) return null
 
   const handleClick = (e) => {
     e.stopPropagation()
@@ -211,8 +212,9 @@ function CombatantRow({ combatant, onHpChange, onInitiativeChange }) {
 }
 
 function MapControlPanel({ encounter }) {
+  const { campaign } = useCampaign()
   const { showToPlayer, lastMessage, playerCount } = useBroadcast()
-  const map = battleMaps[encounter.id]
+  const map = campaign.battleMaps[encounter.id]
   const [mapShowing, setMapShowing] = useState(false)
   const [revealed, setRevealed] = useState(new Set())
   const [killed, setKilled] = useState(new Set())
@@ -377,23 +379,25 @@ function MapControlPanel({ encounter }) {
   )
 }
 
-function EncounterPanel({ encounter }) {
+function EncounterPanel({ encounter, campaignId }) {
   const [open, setOpen] = useState(false);
-  const [combatants, setCombatants] = useState(() =>
-    [
-      ...encounter.enemies.map((e) => ({ ...e, isAlly: false, initiative: null })),
-      ...encounter.allies.map((a) => ({ ...a, isAlly: true, initiative: null })),
-    ]
+
+  const defaultCombatants = () => [
+    ...encounter.enemies.map((e) => ({ ...e, isAlly: false, initiative: null })),
+    ...encounter.allies.map((a) => ({ ...a, isAlly: true, initiative: null })),
+  ];
+
+  const [combatants, setCombatants] = usePersistedState(
+    `dm:${campaignId}:encounter:${encounter.id}:combatants`,
+    defaultCombatants()
   );
-  const [round, setRound] = useState(1);
+  const [round, setRound] = usePersistedState(
+    `dm:${campaignId}:encounter:${encounter.id}:round`,
+    1
+  );
 
   const resetEncounter = useCallback(() => {
-    setCombatants(
-      [
-        ...encounter.enemies.map((e) => ({ ...e, isAlly: false, initiative: null })),
-        ...encounter.allies.map((a) => ({ ...a, isAlly: true, initiative: null })),
-      ]
-    );
+    setCombatants(defaultCombatants());
     setRound(1);
   }, [encounter]);
 
@@ -460,7 +464,7 @@ function EncounterPanel({ encounter }) {
           <p className="text-sm text-parchment/80">{encounter.description}</p>
 
           {/* Map Control Panel */}
-          {battleMaps[encounter.id] && <MapControlPanel encounter={encounter} />}
+          <MapControlPanel encounter={encounter} />
 
           {/* Terrain */}
           {encounter.terrain && (
@@ -543,6 +547,8 @@ function EncounterPanel({ encounter }) {
 }
 
 export default function EncounterTracker() {
+  const { campaign } = useCampaign();
+
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-3">
@@ -593,8 +599,8 @@ export default function EncounterTracker() {
 
       {/* Encounters */}
       <div className="space-y-3">
-        {encounters.map((e) => (
-          <EncounterPanel key={e.id} encounter={e} />
+        {campaign.encounters.map((e) => (
+          <EncounterPanel key={e.id} encounter={e} campaignId={campaign.id} />
         ))}
       </div>
     </div>

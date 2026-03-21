@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import {
   Search,
   Check,
@@ -9,15 +9,16 @@ import {
   ChevronDown,
   ChevronRight,
 } from "lucide-react";
-import { clues, failsafes } from "../data/clues";
+import { useCampaign } from "../hooks/useCampaign";
+import { usePersistedState } from "../hooks/usePersistedState";
 
-function ClueCard({ clue, onToggle }) {
+function ClueCard({ clue, found, onToggle }) {
   const [expanded, setExpanded] = useState(false);
 
   return (
     <div
       className={`bg-bg-surface/60 border rounded-xl overflow-hidden transition-all duration-200 ${
-        clue.found ? "border-success/30 bg-success/5" : "border-bg-elevated/50"
+        found ? "border-success/30 bg-success/5" : "border-bg-elevated/50"
       }`}
     >
       <div className="flex items-center gap-3 px-4 py-3">
@@ -25,12 +26,12 @@ function ClueCard({ clue, onToggle }) {
         <button
           onClick={() => onToggle(clue.id)}
           className={`shrink-0 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all cursor-pointer ${
-            clue.found
+            found
               ? "bg-success border-success text-white"
               : "border-text-muted/30 hover:border-gold-dim"
           }`}
         >
-          {clue.found && <Check className="w-3.5 h-3.5" />}
+          {found && <Check className="w-3.5 h-3.5" />}
         </button>
 
         {/* Clue Info */}
@@ -46,7 +47,7 @@ function ClueCard({ clue, onToggle }) {
           <div className="min-w-0">
             <h4
               className={`text-sm font-medium ${
-                clue.found
+                found
                   ? "text-success-light"
                   : "text-parchment"
               }`}
@@ -103,21 +104,30 @@ function ClueCard({ clue, onToggle }) {
 }
 
 export default function ClueTracker() {
-  const [clueState, setClueState] = useState(clues);
+  const { campaign } = useCampaign();
+  const [foundIds, setFoundIds] = usePersistedState(
+    `dm:${campaign.id}:clueState`,
+    []
+  );
   const [sessionFilter, setSessionFilter] = useState("all");
 
   const toggleClue = (id) => {
-    setClueState((prev) =>
-      prev.map((c) => (c.id === id ? { ...c, found: !c.found } : c))
+    setFoundIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
     );
   };
 
+  const sessionNumbers = useMemo(
+    () => [...new Set(campaign.clues.map((c) => c.session))].sort((a, b) => a - b),
+    [campaign.clues]
+  );
+
   const filtered =
     sessionFilter === "all"
-      ? clueState
-      : clueState.filter((c) => c.session === parseInt(sessionFilter));
+      ? campaign.clues
+      : campaign.clues.filter((c) => c.session === parseInt(sessionFilter));
 
-  const foundCount = clueState.filter((c) => c.found).length;
+  const foundCount = foundIds.length;
 
   return (
     <div className="space-y-6">
@@ -128,7 +138,7 @@ export default function ClueTracker() {
             Clue Tracker
           </h2>
           <p className="text-xs text-text-muted">
-            {foundCount} of {clueState.length} clues discovered
+            {foundCount} of {campaign.clues.length} clues discovered
           </p>
         </div>
       </div>
@@ -138,24 +148,34 @@ export default function ClueTracker() {
         <div
           className="h-full bg-gold transition-all duration-500 rounded-full"
           style={{
-            width: `${(foundCount / clueState.length) * 100}%`,
+            width: `${(foundCount / campaign.clues.length) * 100}%`,
           }}
         />
       </div>
 
       {/* Session Filter */}
       <div className="flex gap-2">
-        {["all", "1", "2"].map((s) => (
+        <button
+          onClick={() => setSessionFilter("all")}
+          className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer ${
+            sessionFilter === "all"
+              ? "bg-gold/15 text-gold border border-gold/30"
+              : "bg-bg-surface/50 text-text-muted border border-transparent hover:bg-bg-surface"
+          }`}
+        >
+          All Sessions
+        </button>
+        {sessionNumbers.map((s) => (
           <button
             key={s}
-            onClick={() => setSessionFilter(s)}
+            onClick={() => setSessionFilter(String(s))}
             className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer ${
-              sessionFilter === s
+              sessionFilter === String(s)
                 ? "bg-gold/15 text-gold border border-gold/30"
                 : "bg-bg-surface/50 text-text-muted border border-transparent hover:bg-bg-surface"
             }`}
           >
-            {s === "all" ? "All Sessions" : `Session ${s}`}
+            Session {s}
           </button>
         ))}
       </div>
@@ -163,7 +183,12 @@ export default function ClueTracker() {
       {/* Clue List */}
       <div className="space-y-2">
         {filtered.map((clue) => (
-          <ClueCard key={clue.id} clue={clue} onToggle={toggleClue} />
+          <ClueCard
+            key={clue.id}
+            clue={clue}
+            found={foundIds.includes(clue.id)}
+            onToggle={toggleClue}
+          />
         ))}
       </div>
 
@@ -180,7 +205,7 @@ export default function ClueTracker() {
           failsafes in order:
         </p>
         <div className="space-y-3">
-          {failsafes.map((f) => (
+          {campaign.failsafes.map((f) => (
             <div key={f.order} className="flex items-start gap-3">
               <span className="w-6 h-6 rounded-full bg-warning/15 text-warning flex items-center justify-center text-xs font-bold shrink-0">
                 {f.order}

@@ -9,28 +9,9 @@ import {
   MessageSquareQuote,
   Lightbulb,
 } from "lucide-react";
-import { sessions } from "../data/story";
+import { useCampaign } from "../hooks/useCampaign";
+import { usePersistedState } from "../hooks/usePersistedState";
 import ShowButton from "./ShowButton";
-
-// Map section titles to visual IDs for the "Show to Player" buttons
-const sectionVisualMap = {
-  "Opening Hook": { type: "location", id: "thornhaven-approach" },
-  "Arrival at Dusk": { type: "location", id: "thornhaven-approach" },
-  "The Salted Eel (Tavern/Inn)": { type: "location", id: "salted-eel" },
-  "Magistrate's Manor": { type: "location", id: "magistrates-manor" },
-  "The Docks": { type: "location", id: "the-docks" },
-  "Part 1: Finding Lira": { type: "location", id: "old-saltworks" },
-  "The Saltworks": { type: "location", id: "old-saltworks" },
-  "Lira Crenn": { type: "character", id: "lira" },
-  "Saltworks Combat": { type: "combat", id: "saltworks-rescue" },
-  "Cave Map": { type: "location", id: "cave-entrance" },
-  "The Caves": { type: "location", id: "cave-entrance" },
-  "Finding Voss": { type: "character", id: "voss" },
-  "The Altar Chamber": { type: "location", id: "altar-chamber" },
-  "The Confrontation": { type: "character", id: "selen" },
-  "Altar Chamber Combat": { type: "combat", id: "altar-chamber" },
-  "Night Encounter": { type: "combat", id: "night-encounter" },
-};
 
 const sectionIcons = {
   readAloud: MessageSquareQuote,
@@ -102,7 +83,7 @@ function Section({ section }) {
   const [open, setOpen] = useState(section.type === "readAloud");
   const Icon = sectionIcons[section.type] || ScrollText;
   const colorClass = sectionColors[section.type] || "";
-  const visual = sectionVisualMap[section.title];
+  const visual = section.visual;
 
   return (
     <div
@@ -171,15 +152,19 @@ function Section({ section }) {
 }
 
 export default function StoryTab() {
-  const [activeSession, setActiveSession] = useState(1);
+  const { campaign } = useCampaign();
+  const [activeSession, setActiveSession] = usePersistedState(
+    `dm:${campaign.id}:activeSession`,
+    1
+  );
 
-  const session = sessions.find((s) => s.id === activeSession);
+  const session = campaign.sessions.find((s) => s.id === activeSession);
 
   return (
     <div className="space-y-6">
       {/* Session Selector */}
       <div className="flex gap-3">
-        {sessions.map((s) => (
+        {campaign.sessions.map((s) => (
           <button
             key={s.id}
             onClick={() => setActiveSession(s.id)}

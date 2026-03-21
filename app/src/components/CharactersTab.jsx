@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { npcs } from "../data/npcs";
+import { useCampaign } from "../hooks/useCampaign";
 import CharacterCard from "./CharacterCard";
 import ShowButton from "./ShowButton";
 
@@ -12,11 +12,12 @@ const filters = [
 ];
 
 export default function CharactersTab() {
+  const { campaign } = useCampaign();
   const [filter, setFilter] = useState("all");
   const [selectedNpc, setSelectedNpc] = useState(null);
 
   const filtered =
-    filter === "all" ? npcs : npcs.filter((n) => n.role === filter);
+    filter === "all" ? campaign.npcs : campaign.npcs.filter((n) => n.role === filter);
 
   return (
     <div className="space-y-6">

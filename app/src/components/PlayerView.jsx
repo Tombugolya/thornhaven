@@ -1,12 +1,14 @@
 import { useState, useEffect, useRef } from "react"
 import { useBroadcast } from "../hooks/useBroadcast"
-import { locationVisuals, characterVisuals, combatVisuals } from "../data/visuals"
-import { battleMaps } from "../data/maps"
+import { useCampaign } from "../hooks/useCampaign"
 import SceneDisplay from "./SceneDisplay"
 import BattleMap from "./BattleMap"
 
 export default function PlayerView() {
+  const { campaign } = useCampaign()
   const { lastMessage, connected, showToPlayer } = useBroadcast()
+  const { location: locationVisuals, character: characterVisuals, combat: combatVisuals } = campaign.visuals
+  const battleMaps = campaign.battleMaps
   const [scene, setScene] = useState(null)
   const [transitioning, setTransitioning] = useState(false)
   const [activeMap, setActiveMap] = useState(null)
@@ -42,6 +44,8 @@ export default function PlayerView() {
           setActiveMap(map)
           setRevealedTokens(new Set())
           setTokenPositions({})
+          setKilledTokens(new Set())
+          setVictory(null)
           setTransitioning(false)
         }, 600)
       }
@@ -93,6 +97,7 @@ export default function PlayerView() {
       setTimeout(() => {
         setActiveMap(null)
         setRevealedTokens(new Set())
+        setVictory(null)
         setScene(visual)
         setTransitioning(false)
       }, 600)
@@ -123,7 +128,7 @@ export default function PlayerView() {
       {/* Victory overlay */}
       {victory && <VictoryScreen />}
 
-      {/* Content */}
+      {/* Content — idle screen needs campaign title */}
       {activeMap ? (
         <BattleMap
           map={activeMap}
@@ -139,7 +144,7 @@ export default function PlayerView() {
       ) : scene ? (
         <SceneDisplay scene={scene} />
       ) : (
-        <IdleScreen />
+        <IdleScreen title={campaign.title} />
       )}
     </div>
   )
@@ -272,7 +277,7 @@ function VictoryScreen() {
   )
 }
 
-function IdleScreen() {
+function IdleScreen({ title }) {
   return (
     <div className="h-screen w-screen flex flex-col items-center justify-center relative overflow-hidden">
       <div className="absolute inset-0" style={{
@@ -311,7 +316,7 @@ function IdleScreen() {
             animation: "breathe 6s ease-in-out infinite",
           }}
         >
-          The Silence of Thornhaven
+          {title}
         </h1>
         <div className="w-32 h-px mx-auto bg-gradient-to-r from-transparent via-gold-dim to-transparent mb-4" />
         <p className="text-parchment/30 text-sm tracking-[0.3em] uppercase font-light">
