@@ -2,6 +2,7 @@ import { useState } from "react";
 import {
   ChevronDown,
   ChevronRight,
+  ChevronsUpDown,
   BookOpen,
   MapPin,
   Swords,
@@ -79,8 +80,15 @@ function renderContent(content) {
   });
 }
 
-function Section({ section }) {
+function Section({ section, forceState }) {
   const [open, setOpen] = useState(section.type === "readAloud");
+  const [lastForce, setLastForce] = useState(forceState);
+
+  if (forceState !== lastForce) {
+    setLastForce(forceState);
+    setOpen(forceState?.open ?? open);
+  }
+
   const Icon = sectionIcons[section.type] || ScrollText;
   const colorClass = sectionColors[section.type] || "";
   const visual = section.visual;
@@ -107,6 +115,14 @@ function Section({ section }) {
           {section.title}
         </span>
         <span className="ml-auto flex items-center gap-2">
+          {section.handout && (Array.isArray(section.handout)
+            ? section.handout.map((h) => {
+                const id = typeof h === "string" ? h : h.id
+                const text = typeof h === "string" ? "Handout" : h.buttonText
+                return <ShowButton key={id} type="handout" id={id} label={text} buttonText={text} />
+              })
+            : <ShowButton type="handout" id={section.handout} label="Handout" buttonText="Handout" />
+          )}
           {visual && <ShowButton type={visual.type} id={visual.id} label={section.title} />}
           {section.type === "combat" && (
             <span className="text-xs bg-danger/20 text-danger-light px-2 py-0.5 rounded-full">
@@ -159,6 +175,7 @@ export default function StoryTab() {
   );
 
   const session = campaign.sessions.find((s) => s.id === activeSession);
+  const [forceState, setForceState] = useState(null);
 
   return (
     <div className="space-y-6">
@@ -167,7 +184,7 @@ export default function StoryTab() {
         {campaign.sessions.map((s) => (
           <button
             key={s.id}
-            onClick={() => setActiveSession(s.id)}
+            onClick={() => { setActiveSession(s.id); setForceState(null); }}
             className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 cursor-pointer ${
               activeSession === s.id
                 ? "bg-gold/15 text-gold border border-gold/30"
@@ -180,20 +197,38 @@ export default function StoryTab() {
       </div>
 
       {/* Session Header */}
-      <div className="flex items-center gap-4">
-        <BookOpen className="w-6 h-6 text-gold" />
-        <div>
-          <h2 className="font-[family-name:var(--font-display)] text-lg font-semibold text-gold">
-            {session.title}
-          </h2>
-          <p className="text-xs text-text-muted">{session.duration}</p>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <BookOpen className="w-6 h-6 text-gold" />
+          <div>
+            <h2 className="font-[family-name:var(--font-display)] text-lg font-semibold text-gold">
+              {session.title}
+            </h2>
+            <p className="text-xs text-text-muted">{session.duration}</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setForceState({ open: true, _t: Date.now() })}
+            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs text-text-muted hover:text-parchment bg-bg-surface/50 hover:bg-bg-surface transition-colors cursor-pointer"
+          >
+            <ChevronsUpDown className="w-3 h-3" />
+            Expand All
+          </button>
+          <button
+            onClick={() => setForceState({ open: false, _t: Date.now() })}
+            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs text-text-muted hover:text-parchment bg-bg-surface/50 hover:bg-bg-surface transition-colors cursor-pointer"
+          >
+            <ChevronsUpDown className="w-3 h-3" />
+            Collapse All
+          </button>
         </div>
       </div>
 
       {/* Sections */}
       <div className="space-y-2">
         {session.sections.map((section, i) => (
-          <Section key={i} section={section} />
+          <Section key={i} section={section} forceState={forceState} />
         ))}
       </div>
     </div>

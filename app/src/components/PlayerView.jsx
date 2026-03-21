@@ -3,15 +3,20 @@ import { useBroadcast } from "../hooks/useBroadcast"
 import { useCampaign } from "../hooks/useCampaign"
 import SceneDisplay from "./SceneDisplay"
 import BattleMap from "./BattleMap"
+import HandoutDisplay from "./HandoutDisplay"
+import Particles from "./Particles"
 
 export default function PlayerView() {
   const { campaign } = useCampaign()
   const { lastMessage, connected, showToPlayer } = useBroadcast()
   const { location: locationVisuals, character: characterVisuals, combat: combatVisuals } = campaign.visuals
+  const moods = campaign.moods
   const battleMaps = campaign.battleMaps
   const [scene, setScene] = useState(null)
   const [transitioning, setTransitioning] = useState(false)
   const [activeMap, setActiveMap] = useState(null)
+  const [activeHandout, setActiveHandout] = useState(null)
+  const [mood, setMood] = useState("default")
   const [revealedTokens, setRevealedTokens] = useState(new Set())
   const [tokenPositions, setTokenPositions] = useState({})
   const [killedTokens, setKilledTokens] = useState(new Set())
@@ -20,11 +25,17 @@ export default function PlayerView() {
   useEffect(() => {
     if (!lastMessage) return
 
+    if (lastMessage.type === "mood") {
+      setMood(lastMessage.mood)
+      return
+    }
+
     if (lastMessage.type === "clear") {
       setTransitioning(true)
       setTimeout(() => {
         setScene(null)
         setActiveMap(null)
+        setActiveHandout(null)
         setRevealedTokens(new Set())
         setTokenPositions({})
         setKilledTokens(new Set())
@@ -42,6 +53,7 @@ export default function PlayerView() {
         setTimeout(() => {
           setScene(null)
           setActiveMap(map)
+          setActiveHandout(null)
           setRevealedTokens(new Set())
           setTokenPositions({})
           setKilledTokens(new Set())
@@ -79,6 +91,23 @@ export default function PlayerView() {
       return
     }
 
+    // Handout reveal
+    if (lastMessage.type === "handout") {
+      const handout = campaign.handouts?.[lastMessage.id]
+      if (handout) {
+        setTransitioning(true)
+        setTimeout(() => {
+          setScene(null)
+          setActiveMap(null)
+          setActiveHandout(handout)
+          setRevealedTokens(new Set())
+          setVictory(null)
+          setTransitioning(false)
+        }, 600)
+      }
+      return
+    }
+
     // Scene reveals (location, character, combat splash)
     let visual = null
     if (lastMessage.type === "location") {
@@ -96,6 +125,7 @@ export default function PlayerView() {
       setTransitioning(true)
       setTimeout(() => {
         setActiveMap(null)
+        setActiveHandout(null)
         setRevealedTokens(new Set())
         setVictory(null)
         setScene(visual)
@@ -141,10 +171,12 @@ export default function PlayerView() {
             showToPlayer("move", null, { tokenId, x, y })
           }}
         />
+      ) : activeHandout ? (
+        <HandoutDisplay handout={activeHandout} />
       ) : scene ? (
         <SceneDisplay scene={scene} />
       ) : (
-        <IdleScreen title={campaign.title} />
+        <IdleScreen title={campaign.title} mood={moods?.[mood] || moods?.default} />
       )}
     </div>
   )
@@ -277,30 +309,62 @@ function VictoryScreen() {
   )
 }
 
-function IdleScreen({ title }) {
+function IdleScreen({ title, mood }) {
+  const [prevMood, setPrevMood] = useState(mood)
+  const [fading, setFading] = useState(false)
+
+  useEffect(() => {
+    if (mood && mood.id !== prevMood?.id) {
+      setFading(true)
+      const t = setTimeout(() => {
+        setPrevMood(mood)
+        setFading(false)
+      }, 2000)
+      return () => clearTimeout(t)
+    }
+  }, [mood])
+
+  const gradient = mood?.gradient || ["#0d1b2a", "#070b14", "#020204"]
+  const prevGradient = prevMood?.gradient || ["#0d1b2a", "#070b14", "#020204"]
+  const accentColor = mood?.accentColor || "#c9a227"
+
   return (
     <div className="h-screen w-screen flex flex-col items-center justify-center relative overflow-hidden">
+      {/* Previous mood gradient (base layer) */}
       <div className="absolute inset-0" style={{
-        background: "radial-gradient(ellipse at 50% 120%, #0d1b2a 0%, #070b14 50%, #020204 100%)",
+        background: `radial-gradient(ellipse at 50% 120%, ${prevGradient[0]} 0%, ${prevGradient[1]} 50%, ${prevGradient[2]} 100%)`,
       }} />
-      <div className="absolute inset-0 overflow-hidden">
-        {Array.from({ length: 30 }).map((_, i) => (
-          <div
-            key={i}
-            className="absolute rounded-full bg-parchment/10"
-            style={{
-              width: `${1 + Math.random() * 2}px`,
-              height: `${1 + Math.random() * 2}px`,
-              left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 100}%`,
-              animation: `idleFloat ${8 + Math.random() * 12}s ease-in-out infinite`,
-              animationDelay: `${Math.random() * 10}s`,
-            }}
-          />
-        ))}
-      </div>
+      {/* Current mood gradient (fades in over 2s) */}
+      <div className="absolute inset-0 transition-opacity duration-2000" style={{
+        background: `radial-gradient(ellipse at 50% 120%, ${gradient[0]} 0%, ${gradient[1]} 50%, ${gradient[2]} 100%)`,
+        opacity: fading ? 0 : 1,
+        transitionDuration: "2000ms",
+      }} />
+
+      {/* Particles — mood-specific or default floating dots */}
+      {mood?.particles ? (
+        <Particles key={mood.id} type={mood.particles} accentColor={mood.particleColor || accentColor} />
+      ) : (
+        <div className="absolute inset-0 overflow-hidden">
+          {Array.from({ length: 30 }).map((_, i) => (
+            <div
+              key={i}
+              className="absolute rounded-full bg-parchment/10"
+              style={{
+                width: `${1 + Math.random() * 2}px`,
+                height: `${1 + Math.random() * 2}px`,
+                left: `${Math.random() * 100}%`,
+                top: `${Math.random() * 100}%`,
+                animation: `idleFloat ${8 + Math.random() * 12}s ease-in-out infinite`,
+                animationDelay: `${Math.random() * 10}s`,
+              }}
+            />
+          ))}
+        </div>
+      )}
+
       <div className="absolute bottom-0 left-0 right-0 h-1/3" style={{
-        background: "linear-gradient(to top, #0a1828 0%, transparent 100%)",
+        background: `linear-gradient(to top, ${gradient[2]} 0%, transparent 100%)`,
       }}>
         <div className="absolute inset-0 opacity-20" style={{
           background: "repeating-linear-gradient(90deg, transparent, transparent 40px, rgba(74,111,165,0.1) 40px, rgba(74,111,165,0.1) 41px)",
@@ -309,11 +373,12 @@ function IdleScreen({ title }) {
       </div>
       <div className="relative z-10 text-center px-8">
         <h1
-          className="font-[family-name:var(--font-display)] text-5xl md:text-7xl font-bold tracking-wider mb-4"
+          className="font-[family-name:var(--font-display)] text-5xl md:text-7xl font-bold tracking-wider mb-4 transition-colors duration-2000"
           style={{
-            color: "#c9a227",
-            textShadow: "0 0 40px rgba(201,162,39,0.15), 0 0 80px rgba(201,162,39,0.05)",
+            color: accentColor,
+            textShadow: `0 0 40px ${accentColor}25, 0 0 80px ${accentColor}0d`,
             animation: "breathe 6s ease-in-out infinite",
+            transitionDuration: "2000ms",
           }}
         >
           {title}
@@ -327,7 +392,7 @@ function IdleScreen({ title }) {
         <svg width="200" height="200" viewBox="0 0 200 200">
           <path
             d="M100,100 m-80,0 a80,80 0 1,1 160,0 a80,80 0 1,1 -160,0 M100,100 m-55,0 a55,55 0 1,0 110,0 a55,55 0 1,0 -110,0 M100,100 m-30,0 a30,30 0 1,1 60,0 a30,30 0 1,1 -60,0"
-            fill="none" stroke="#c9a227" strokeWidth="1"
+            fill="none" stroke={accentColor} strokeWidth="1"
           />
         </svg>
       </div>

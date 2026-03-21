@@ -2,7 +2,7 @@ import { useState } from "react"
 import { MonitorUp } from "lucide-react"
 import { useBroadcast } from "../hooks/useBroadcast"
 
-export default function ShowButton({ type, id, label }) {
+export default function ShowButton({ type, id, label, buttonText }) {
   const { showToPlayer, playerCount } = useBroadcast()
   const [flash, setFlash] = useState(false)
 
@@ -29,7 +29,7 @@ export default function ShowButton({ type, id, label }) {
       title={`Show ${label || id} to player`}
     >
       <MonitorUp className="w-3 h-3" />
-      {flash ? "Sent!" : "Show"}
+      {flash ? "Sent!" : buttonText || "Show"}
     </button>
   )
 }

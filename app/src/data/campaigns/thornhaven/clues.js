@@ -8,6 +8,7 @@ export const clues = [
     dc: "DC 10 Investigation (floorboard is loose)",
     leadsTo: ["Lira Crenn", "Caves", "Voss investigation"],
     found: false,
+    handout: "journal-page",
   },
   {
     id: "manor-note",
@@ -18,6 +19,7 @@ export const clues = [
     dc: "No check — plainly visible",
     leadsTo: ["Voss was taken against his will", "Someone wrote this under duress"],
     found: false,
+    handout: "manor-note",
   },
   {
     id: "unfinished-letter",
@@ -28,6 +30,7 @@ export const clues = [
     dc: "DC 15 Thieves' Tools or DC 18 Strength to enter",
     leadsTo: ["Voss was interrupted", "Something urgent enough to write about"],
     found: false,
+    handout: "unfinished-letter",
   },
   {
     id: "cave-map",
@@ -38,6 +41,7 @@ export const clues = [
     dc: "Found when searching the manor",
     leadsTo: ["Cave location", "Altar Chamber"],
     found: false,
+    handout: "cave-map",
   },
   {
     id: "tam-truth",
@@ -58,6 +62,7 @@ export const clues = [
     dc: "Loot from night encounter",
     leadsTo: ["Confirms the Undertow exists", "They meet Tuesdays", "They are hilariously disorganized"],
     found: false,
+    handout: "thug-handbook",
   },
   {
     id: "saltworks-minutes",
@@ -68,6 +73,7 @@ export const clues = [
     dc: "Found when exploring the Saltworks basement",
     leadsTo: ["Confirms the Undertow meets here", "Comedy gold"],
     found: false,
+    handout: "meeting-minutes",
   },
   {
     id: "lira-testimony",
@@ -98,6 +104,7 @@ export const clues = [
     dc: "DC 10 Investigation to crack the code",
     leadsTo: ["Cave schedules", "Supply lists", "Confirms everything"],
     found: false,
+    handout: "coded-notes",
   },
 ];
 

@@ -35,7 +35,9 @@ function DmApp() {
     `dm:${campaign.id}:activeTab`,
     "story"
   );
-  const { connected, playerCount, clearPlayer } = useBroadcast();
+  const { connected, playerCount, clearPlayer, showToPlayer } = useBroadcast();
+  const [activeMood, setActiveMood] = useState("default");
+  const moodEntries = campaign.moods ? Object.values(campaign.moods) : [];
 
   const playerUrl = useMemo(() => {
     const loc = window.location;
@@ -61,6 +63,29 @@ function DmApp() {
 
           {/* Player connection status + link */}
           <div className="flex items-center gap-3">
+            {playerCount > 0 && (
+              <div className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg bg-bg-surface/60 border border-bg-elevated/50" title="Mood">
+                {moodEntries.map((m) => (
+                  <button
+                    key={m.id}
+                    onClick={() => {
+                      showToPlayer("mood", null, { mood: m.id });
+                      setActiveMood(m.id);
+                    }}
+                    className="w-5 h-5 rounded-full cursor-pointer transition-all duration-200 shrink-0"
+                    style={{
+                      background: m.gradient[0],
+                      border: `2px solid ${m.accentColor}`,
+                      boxShadow: activeMood === m.id
+                        ? `0 0 0 2px ${m.accentColor}60, 0 0 8px ${m.accentColor}40`
+                        : "none",
+                      opacity: activeMood === m.id ? 1 : 0.6,
+                    }}
+                    title={m.name}
+                  />
+                ))}
+              </div>
+            )}
             <button
               onClick={clearPlayer}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs bg-bg-surface/60 border border-bg-elevated/50 text-text-muted hover:text-parchment hover:bg-bg-surface transition-colors cursor-pointer"

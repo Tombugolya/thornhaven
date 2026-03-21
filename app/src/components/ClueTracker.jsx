@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { useCampaign } from "../hooks/useCampaign";
 import { usePersistedState } from "../hooks/usePersistedState";
+import ShowButton from "./ShowButton";
 
 function ClueCard({ clue, found, onToggle }) {
   const [expanded, setExpanded] = useState(false);
@@ -61,7 +62,8 @@ function ClueCard({ clue, found, onToggle }) {
           </div>
         </button>
 
-        {/* Session Badge */}
+        {/* Handout + Session Badge */}
+        {clue.handout && <ShowButton type="handout" id={clue.handout} label="Handout" buttonText="Handout" />}
         <span className="text-[10px] bg-bg-base text-text-muted px-2 py-0.5 rounded-full shrink-0">
           S{clue.session}
         </span>

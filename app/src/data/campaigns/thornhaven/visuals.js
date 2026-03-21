@@ -165,6 +165,57 @@ export const characterVisuals = {
   },
 }
 
+export const moods = {
+  default: {
+    id: "default",
+    name: "Default",
+    gradient: ["#0d1b2a", "#070b14", "#020204"],
+    particles: null,
+    particleColor: null,
+    accentColor: "#c9a227",
+  },
+  warm: {
+    id: "warm",
+    name: "Warm",
+    gradient: ["#1a0f08", "#2d1a0a", "#1a1008"],
+    particles: "sparks",
+    particleColor: "#e67e22",
+    accentColor: "#e67e22",
+  },
+  tense: {
+    id: "tense",
+    name: "Tense",
+    gradient: ["#0a0a14", "#151520", "#0d0d18"],
+    particles: "dust",
+    particleColor: "#7f8c8d",
+    accentColor: "#7f8c8d",
+  },
+  eerie: {
+    id: "eerie",
+    name: "Eerie",
+    gradient: ["#050a14", "#0a1424", "#081018"],
+    particles: "bioluminescence",
+    particleColor: "#1abc9c",
+    accentColor: "#1abc9c",
+  },
+  dread: {
+    id: "dread",
+    name: "Dread",
+    gradient: ["#020208", "#08081a", "#040410"],
+    particles: "void",
+    particleColor: "#6a3fa5",
+    accentColor: "#6a3fa5",
+  },
+  foreboding: {
+    id: "foreboding",
+    name: "Foreboding",
+    gradient: ["#050810", "#0a1018", "#080c14"],
+    particles: "fog",
+    particleColor: "#4a6fa5",
+    accentColor: "#4a6fa5",
+  },
+}
+
 export const combatVisuals = {
   "night-encounter": {
     name: "Night Ambush",

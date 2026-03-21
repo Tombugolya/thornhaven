@@ -57,6 +57,7 @@ export const sessions = [
         title: "The Salted Eel (Tavern/Inn)",
         type: "location",
         visual: { type: "location", id: "salted-eel" },
+        handout: "journal-page",
         content: `The Salted Eel is Thornhaven's only inn. **Berta Gruun** runs it. She's delighted to have a guest — the inn has been virtually empty for months (no visitors in a dying town). She talks about weather with manic energy when asked about anything else. If Voss is mentioned, she pivots to a 4-minute monologue about cloud formations.
 
 **The Room:** Berta gives the player her own room — it's the nicest one, and nobody else is staying here. "Take my room, I insist! I'll sleep in the kitchen. I like the kitchen. It's warm. Anyway, lovely barometric pressure tonight." This matters because the clue below is there *because it's Berta's room* — she's been careless with her own notes.
@@ -81,6 +82,11 @@ export const sessions = [
         title: "Magistrate's Manor",
         type: "location",
         visual: { type: "location", id: "magistrates-manor" },
+        handout: [
+          { id: "manor-note", buttonText: "Note" },
+          { id: "unfinished-letter", buttonText: "Letter" },
+          { id: "cave-map", buttonText: "Map" },
+        ],
         content: `Front door locked. A note pinned in shaky handwriting: "GONE AWAY. VERY ILL. DO NOT ENTER. DEFINITELY NOT KIDNAPPED."
 
 **Getting in:** DC 15 Thieves' Tools or DC 18 Strength.
@@ -92,6 +98,7 @@ export const sessions = [
       {
         title: "When the Player Can't Get In",
         type: "dmtip",
+        handout: "unfinished-letter",
         content: `**If they fail the lock/strength check:** Don't dead-end them. Options:
 - A window in the back is cracked open (DC 10 Athletics to climb through)
 - Maren knows where the spare key is hidden ("Under the third flowerpot. Everyone knows.")
@@ -152,6 +159,7 @@ She knows:
         title: "Night Encounter",
         type: "combat",
         visual: { type: "combat", id: "night-encounter" },
+        handout: "thug-handbook",
         content: `**2 Thugs** follow the player — wearing dark cloaks with the spiral wave symbol. They are not stealthy. One sneezes. The other whispers "SHUT UP" loud enough to echo off the cliffs.
 
 They attack if spotted, but fight with the energy of people who did NOT expect actual confrontation.
@@ -231,6 +239,7 @@ They attack if spotted, but fight with the energy of people who did NOT expect a
         title: "The Saltworks",
         type: "location",
         visual: { type: "location", id: "old-saltworks" },
+        handout: "meeting-minutes",
         content: `**Ground floor:** Dusty, abandoned. Trapdoor (DC 12 Perception) leads down.
 
 **Basement:** Meeting room with table, chairs, and meeting minutes:
@@ -243,6 +252,10 @@ A locked room (DC 13) holds Lira.`,
       {
         title: "The Meeting Minutes",
         type: "dmtip",
+        handout: [
+          { id: "meeting-minutes", buttonText: "Minutes" },
+          { id: "coded-notes", buttonText: "Cipher" },
+        ],
         content: `**Read the meeting minutes aloud like a bored secretary.** Monotone voice. "Item one: The Plan. Item two: Snack rotation dispute. Item three: Todd keeps telling his wife about meetings — FINAL WARNING TODD."
 
 This is one of the biggest comedy moments in the campaign. The contrast between "secret evil society" and "HOA with meeting minutes about snack disputes" is the whole joke. Sell it.
@@ -346,6 +359,7 @@ ALTAR CHAMBER (large, partially flooded)`,
         title: "Finding Voss",
         type: "readAloud",
         visual: { type: "character", id: "voss" },
+        handout: "voss-complaints",
         content: `"I have been chained to a rock for six weeks by a woman who runs a fish-counting office. Do you have any idea how humiliating that is?"`,
       },
       {
@@ -596,6 +610,7 @@ Any relevant skill works: Athletics, Nature, Mason's Tools, Arcana, Persuasion, 
       {
         title: "Rewards",
         type: "notes",
+        handout: "voss-commendation",
         content: `From Voss:
 - Letter of commendation
 - 100 gp
