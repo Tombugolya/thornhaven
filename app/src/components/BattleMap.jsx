@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useCallback } from "react"
+import { useEffect, useState, useRef, useCallback, memo } from "react"
 
 const CONDITION_COLORS = {
   prone: "#ff9944",
@@ -21,7 +21,10 @@ function screenToSVG(svg, clientX, clientY) {
   return pt.matrixTransform(svg.getScreenCTM().inverse())
 }
 
-function Token({ id, token, pos, revealed, delay = 0, draggable, onDragStart, onDrag, onDragEnd, draggingId, prone, isActiveTurn, dying, conditions = [] }) {
+const EMPTY_CONDITIONS = []
+
+const Token = memo(function Token({ id, token, pos, revealed, delay = 0, draggable, onDragStart, onDrag, onDragEnd, draggingId, prone, isActiveTurn, dying, conditions }) {
+  const resolvedConditions = conditions || EMPTY_CONDITIONS
   const [visible, setVisible] = useState(false)
   const isDragging = draggingId === id
 
@@ -135,10 +138,10 @@ function Token({ id, token, pos, revealed, delay = 0, draggable, onDragStart, on
         {token.label}
       </text>
       {/* Condition indicators — small colored dots with letters */}
-      {conditions.length > 0 && !dying && (
+      {resolvedConditions.length > 0 && !dying && (
         <g style={{ pointerEvents: "none" }}>
-          {conditions.map((cond, i) => {
-            const total = conditions.length
+          {resolvedConditions.map((cond, i) => {
+            const total = resolvedConditions.length
             const dotR = 5
             const spacing = 13
             const startX = x - ((total - 1) * spacing) / 2
@@ -160,7 +163,7 @@ function Token({ id, token, pos, revealed, delay = 0, draggable, onDragStart, on
       )}
     </g>
   )
-}
+})
 
 function FloatingNumber({ x, y, value }) {
   const [phase, setPhase] = useState("enter")
@@ -519,7 +522,7 @@ export default function BattleMap({
           prone={proneTokens.has(id)}
           isActiveTurn={activeTurnToken === id}
           dying={dyingTokens.has(id)}
-          conditions={tokenConditions[id] || []}
+          conditions={tokenConditions[id] || EMPTY_CONDITIONS}
         />
       ))}
       {/* Floating damage/heal numbers */}

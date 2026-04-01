@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react"
+import { useState, useEffect, useRef, useCallback, useMemo } from "react"
 import { useBroadcast } from "../hooks/useBroadcast"
 import { useCampaign } from "../hooks/useCampaign"
 import SceneDisplay from "./SceneDisplay"
@@ -237,13 +237,19 @@ export default function PlayerView() {
   }, [lastMessage])
 
   // Build visible tokens: revealed minus killed (dying tokens stay visible via dyingTokens prop)
-  const visibleTokens = new Set([...revealedTokens].filter(id => !killedTokens.has(id)))
+  const visibleTokens = useMemo(
+    () => new Set([...revealedTokens].filter(id => !killedTokens.has(id))),
+    [revealedTokens, killedTokens]
+  )
 
   // Derive proneTokens from tokenConditions
-  const proneTokens = new Set(
-    Object.entries(tokenConditions)
-      .filter(([, conds]) => conds.includes("prone"))
-      .map(([id]) => id)
+  const proneTokens = useMemo(
+    () => new Set(
+      Object.entries(tokenConditions)
+        .filter(([, conds]) => conds.includes("prone"))
+        .map(([id]) => id)
+    ),
+    [tokenConditions]
   )
 
   return (

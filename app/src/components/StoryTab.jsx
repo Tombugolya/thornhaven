@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   ChevronDown,
   ChevronRight,
@@ -82,12 +82,12 @@ function renderContent(content) {
 
 function Section({ section, forceState }) {
   const [open, setOpen] = useState(section.type === "readAloud");
-  const [lastForce, setLastForce] = useState(forceState);
 
-  if (forceState !== lastForce) {
-    setLastForce(forceState);
-    setOpen(forceState?.open ?? open);
-  }
+  useEffect(() => {
+    if (forceState !== null) {
+      setOpen(forceState.open);
+    }
+  }, [forceState]);
 
   const Icon = sectionIcons[section.type] || ScrollText;
   const colorClass = sectionColors[section.type] || "";

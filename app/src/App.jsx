@@ -132,6 +132,16 @@ function PlayerJoin({ onJoin }) {
   );
 }
 
+// Pre-computed ember particle data for loading screen (avoids Math.random in render)
+const LOADING_EMBERS = Array.from({ length: 12 }, () => ({
+  width: 2 + Math.random() * 3,
+  height: 2 + Math.random() * 3,
+  left: `${20 + Math.random() * 60}%`,
+  bottom: `${10 + Math.random() * 40}%`,
+  duration: `${2 + Math.random() * 3}s`,
+  delay: `${Math.random() * 3}s`,
+}))
+
 // --- Auth Gate ---
 function AuthGate({ children }) {
   const [user, setUser] = useState(null);
@@ -168,18 +178,18 @@ function AuthGate({ children }) {
     return (
       <div className="fixed inset-0 bg-bg-deep flex items-center justify-center overflow-hidden">
         {/* Background embers */}
-        {Array.from({ length: 12 }).map((_, i) => (
+        {LOADING_EMBERS.map((ember, i) => (
           <div
             key={i}
             className="absolute rounded-full"
             style={{
-              width: 2 + Math.random() * 3,
-              height: 2 + Math.random() * 3,
-              left: `${20 + Math.random() * 60}%`,
-              bottom: `${10 + Math.random() * 40}%`,
+              width: ember.width,
+              height: ember.height,
+              left: ember.left,
+              bottom: ember.bottom,
               background: `radial-gradient(circle, #c9a227, #8a6e1a00)`,
-              animation: `loadEmber ${2 + Math.random() * 3}s ease-out infinite`,
-              animationDelay: `${Math.random() * 3}s`,
+              animation: `loadEmber ${ember.duration} ease-out infinite`,
+              animationDelay: ember.delay,
             }}
           />
         ))}

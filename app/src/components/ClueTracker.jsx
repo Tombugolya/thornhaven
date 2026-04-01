@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback, memo } from "react";
 import {
   Search,
   Check,
@@ -13,7 +13,7 @@ import { useCampaign } from "../hooks/useCampaign";
 import { usePersistedState } from "../hooks/usePersistedState";
 import ShowButton from "./ShowButton";
 
-function ClueCard({ clue, found, onToggle }) {
+const ClueCard = memo(function ClueCard({ clue, found, onToggle }) {
   const [expanded, setExpanded] = useState(false);
 
   return (
@@ -103,7 +103,7 @@ function ClueCard({ clue, found, onToggle }) {
       )}
     </div>
   );
-}
+})
 
 export default function ClueTracker() {
   const { campaign } = useCampaign();
@@ -113,11 +113,11 @@ export default function ClueTracker() {
   );
   const [sessionFilter, setSessionFilter] = useState("all");
 
-  const toggleClue = (id) => {
+  const toggleClue = useCallback((id) => {
     setFoundIds((prev) =>
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
     );
-  };
+  }, [setFoundIds]);
 
   const sessionNumbers = useMemo(
     () => [...new Set(campaign.clues.map((c) => c.session))].sort((a, b) => a - b),

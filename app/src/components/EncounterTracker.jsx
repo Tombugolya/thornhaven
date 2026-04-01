@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
 import {
   Swords,
   Heart,
@@ -345,7 +345,10 @@ function MapControlPanel({ encounter, activeTurnId, proneIds, tokenConditions = 
   }
 
   // Build revealed set excluding killed
-  const visibleTokens = new Set([...revealed].filter(id => !killed.has(id)))
+  const visibleTokens = useMemo(
+    () => new Set([...revealed].filter(id => !killed.has(id))),
+    [revealed, killed]
+  )
 
   return (
     <div className="bg-info/5 border border-info/20 rounded-xl p-4 space-y-3">
@@ -496,13 +499,16 @@ function EncounterPanel({ encounter, campaignId }) {
 
   // Migrate: inject PC if persisted state predates the PC addition
   useEffect(() => {
-    if (map?.tokens?.player && !combatants.find((c) => c.id === "player")) {
-      setCombatants((prev) => [{
-        id: "player", name: "Player", isAlly: true, isPC: true,
-        hp: 25, maxHp: 25, ac: 15, initiative: null, conditions: [], notes: "",
-      }, ...prev]);
+    if (map?.tokens?.player) {
+      setCombatants((prev) => {
+        if (prev.find((c) => c.id === "player")) return prev;
+        return [{
+          id: "player", name: "Player", isAlly: true, isPC: true,
+          hp: 25, maxHp: 25, ac: 15, initiative: null, conditions: [], notes: "",
+        }, ...prev];
+      });
     }
-  }, []); // run once on mount
+  }, [map]);
   const [round, setRound] = usePersistedState(
     `dm:${campaignId}:encounter:${encounter.id}:round`,
     1
@@ -525,7 +531,7 @@ function EncounterPanel({ encounter, campaignId }) {
     setCombatants(defaultCombatants());
     setRound(1);
     setActiveTurnId(null);
-  }, [encounter]);
+  }, [encounter, setCombatants, setRound, setActiveTurnId]);
 
   const updateHp = useCallback((id, delta) => {
     setCombatants((prev) =>
@@ -539,41 +545,35 @@ function EncounterPanel({ encounter, campaignId }) {
     if (playerCount > 0 && mapExists) {
       showToPlayer("damage", null, { tokenId: toTokenId(id), value: delta })
     }
-  }, [playerCount, mapExists, showToPlayer, toTokenId]);
+  }, [setCombatants, playerCount, mapExists, showToPlayer, toTokenId]);
 
   const updateInitiative = useCallback((id, val) => {
     setCombatants((prev) =>
       prev.map((c) => (c.id === id ? { ...c, initiative: val } : c))
     );
-  }, []);
+  }, [setCombatants]);
 
   const toggleCondition = useCallback((id, condition) => {
-    let newConditions;
-    setCombatants((prev) =>
-      prev.map((c) => {
-        if (c.id !== id) return c;
-        const conditions = c.conditions || [];
-        const has = conditions.includes(condition);
-        newConditions = has
-          ? conditions.filter((x) => x !== condition)
-          : [...conditions, condition];
-        return { ...c, conditions: newConditions };
-      })
-    );
-    // Broadcast all conditions to player
-    if (playerCount > 0 && mapExists) {
-      const combatant = combatants.find((c) => c.id === id);
-      const conditions = combatant?.conditions || [];
-      const has = conditions.includes(condition);
-      const updated = has
-        ? conditions.filter((x) => x !== condition)
-        : [...conditions, condition];
-      showToPlayer("conditions", null, { tokenId: toTokenId(id), conditions: updated });
-    }
-  }, [combatants, playerCount, mapExists, showToPlayer, toTokenId]);
+    // Compute new conditions before state update so broadcast is reliable
+    const combatant = combatants.find((c) => c.id === id);
+    const conditions = combatant?.conditions || [];
+    const has = conditions.includes(condition);
+    const newConditions = has
+      ? conditions.filter((x) => x !== condition)
+      : [...conditions, condition];
 
-  const sorted = [...combatants].sort(
-    (a, b) => (b.initiative ?? -1) - (a.initiative ?? -1)
+    setCombatants((prev) =>
+      prev.map((c) => c.id === id ? { ...c, conditions: newConditions } : c)
+    );
+
+    if (playerCount > 0 && mapExists) {
+      showToPlayer("conditions", null, { tokenId: toTokenId(id), conditions: newConditions });
+    }
+  }, [combatants, setCombatants, playerCount, mapExists, showToPlayer, toTokenId]);
+
+  const sorted = useMemo(
+    () => [...combatants].sort((a, b) => (b.initiative ?? -1) - (a.initiative ?? -1)),
+    [combatants]
   );
 
   const nextTurn = useCallback(() => {
@@ -610,14 +610,17 @@ function EncounterPanel({ encounter, campaignId }) {
 
   // Collect conditions per token for passing to MapControlPanel / BattleMap
   // Uses map token IDs so conditions render on the correct tokens
-  const tokenConditions = {};
-  const proneIds = new Set();
-  combatants.forEach((c) => {
-    const conds = c.conditions || [];
-    const tid = toTokenId(c.id);
-    if (conds.length > 0) tokenConditions[tid] = conds;
-    if (conds.includes("prone")) proneIds.add(tid);
-  });
+  const { tokenConditions, proneIds } = useMemo(() => {
+    const conditions = {};
+    const prone = new Set();
+    combatants.forEach((c) => {
+      const conds = c.conditions || [];
+      const tid = toTokenId(c.id);
+      if (conds.length > 0) conditions[tid] = conds;
+      if (conds.includes("prone")) prone.add(tid);
+    });
+    return { tokenConditions: conditions, proneIds: prone };
+  }, [combatants, toTokenId]);
 
   const diffColors = {
     Easy: "text-success-light bg-success/15",
