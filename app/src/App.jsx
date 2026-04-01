@@ -377,7 +377,7 @@ function DmApp({ user, onSignOut, sessionRoomCode, navigate }) {
 
   // Landing view
   if (view === "landing") {
-    return <CampaignLanding onEnterCampaign={enterCampaign} />;
+    return <CampaignLanding onEnterCampaign={enterCampaign} onSignOut={onSignOut} />;
   }
 
   // Session picker view

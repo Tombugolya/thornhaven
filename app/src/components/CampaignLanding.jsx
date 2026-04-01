@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, LogOut } from "lucide-react";
 import { useCampaign } from "../hooks/useCampaign";
 import Particles from "./Particles";
 
@@ -155,7 +155,7 @@ function CampaignCard({ campaign, onEnter }) {
   );
 }
 
-export default function CampaignLanding({ onEnterCampaign }) {
+export default function CampaignLanding({ onEnterCampaign, onSignOut }) {
   const { campaigns, selectCampaign } = useCampaign();
   const [entered, setEntered] = useState(false);
 
@@ -171,6 +171,17 @@ export default function CampaignLanding({ onEnterCampaign }) {
 
   return (
     <div className="min-h-screen bg-bg-deep flex flex-col items-center justify-center relative overflow-hidden">
+      {/* Sign out */}
+      {onSignOut && (
+        <button
+          onClick={onSignOut}
+          className="absolute top-5 right-5 z-20 p-2 rounded-lg text-text-muted hover:text-gold hover:bg-gold/10 transition-colors cursor-pointer"
+          title="Sign out"
+        >
+          <LogOut className="w-4 h-4" />
+        </button>
+      )}
+
       {/* Particles */}
       <Particles type="dust" accentColor="#c9a227" />
 
