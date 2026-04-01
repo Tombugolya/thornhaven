@@ -31,7 +31,11 @@ export function BroadcastProvider({ role, children }) {
 
     ws.onclose = () => {
       setConnected(false)
-      reconnectTimer.current = setTimeout(connect, 2000)
+      // Only reconnect if this socket is still the active one
+      // (prevents ghost connections from StrictMode double-mount)
+      if (wsRef.current === ws) {
+        reconnectTimer.current = setTimeout(connect, 2000)
+      }
     }
 
     ws.onerror = () => ws.close()
@@ -43,7 +47,10 @@ export function BroadcastProvider({ role, children }) {
     connect()
     return () => {
       clearTimeout(reconnectTimer.current)
-      wsRef.current?.close()
+      // Null out ref before closing so onclose won't reconnect
+      const ws = wsRef.current
+      wsRef.current = null
+      ws?.close()
     }
   }, [connect])
 

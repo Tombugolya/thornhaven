@@ -15,12 +15,23 @@ import {
   Map,
   Eye,
   MonitorUp,
+  PersonStanding,
+  Brain,
+  CircleSlash,
+  Ghost,
 } from "lucide-react";
 import { useCampaign } from "../hooks/useCampaign";
 import { useBroadcast } from "../hooks/useBroadcast";
 import { usePersistedState } from "../hooks/usePersistedState";
 import ShowButton from "./ShowButton";
 import BattleMap from "./BattleMap";
+
+const CONDITIONS = [
+  { key: "prone", label: "Prone", tooltip: "Prone — disadvantage on attacks, attackers within 5ft have advantage", icon: PersonStanding, color: "#ff9944" },
+  { key: "concentrating", label: "Conc", tooltip: "Concentrating — maintaining a spell", icon: Brain, color: "#44aaff" },
+  { key: "stunned", label: "Stun", tooltip: "Stunned — incapacitated, auto-fail STR/DEX saves, attacks have advantage", icon: CircleSlash, color: "#ffcc00" },
+  { key: "frightened", label: "Frght", tooltip: "Frightened — disadvantage on checks/attacks while source is in sight", icon: Ghost, color: "#cc66ff" },
+];
 
 function HPBar({ current, max }) {
   const pct = Math.max(0, Math.min(100, (current / max) * 100));
@@ -101,7 +112,40 @@ function MapButton({ encounterId }) {
   )
 }
 
-function CombatantRow({ combatant, onHpChange, onInitiativeChange }) {
+function ConditionToggles({ conditions = [], onToggle }) {
+  return (
+    <div className="flex items-center gap-1 mt-2">
+      {CONDITIONS.map(({ key, label, tooltip, icon: Icon, color }) => {
+        const active = conditions.includes(key);
+        return (
+          <button
+            key={key}
+            onClick={() => onToggle(key)}
+            className={`
+              inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[9px] font-medium
+              transition-all duration-200 cursor-pointer border
+              ${active
+                ? "opacity-100"
+                : "opacity-40 hover:opacity-70"
+              }
+            `}
+            style={{
+              backgroundColor: active ? `${color}22` : "transparent",
+              borderColor: active ? `${color}55` : `${color}20`,
+              color: color,
+            }}
+            title={tooltip}
+          >
+            <Icon className="w-2.5 h-2.5" />
+            {active && <span>{label}</span>}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function CombatantRow({ combatant, onHpChange, onInitiativeChange, onConditionToggle, isActiveTurn }) {
   const [damageInput, setDamageInput] = useState("");
   const isDead = combatant.hp <= 0;
 
@@ -126,18 +170,26 @@ function CombatantRow({ combatant, onHpChange, onInitiativeChange }) {
       className={`bg-bg-surface/60 border rounded-xl p-4 transition-all duration-200 ${
         isDead
           ? "border-danger/30 opacity-50"
+          : isActiveTurn
+          ? "border-gold/40 shadow-[inset_4px_0_0_#c9a227] scale-[1.01]"
+          : combatant.isPC
+          ? "border-gold/25"
           : combatant.isAlly
           ? "border-success/20"
           : "border-bg-elevated/50"
       }`}
     >
       <div className="flex items-center gap-3 mb-2">
-        {/* Initiative */}
+        {/* Initiative input */}
         <input
           type="number"
           value={combatant.initiative ?? ""}
           onChange={(e) => onInitiativeChange(parseInt(e.target.value) || 0)}
-          className="w-10 h-10 rounded-lg bg-bg-base border border-bg-elevated/50 text-center text-sm font-bold text-gold focus:outline-none focus:border-gold/40"
+          className={`w-10 h-10 rounded-lg border text-center text-sm font-bold focus:outline-none transition-all ${
+            isActiveTurn
+              ? "bg-gold/20 border-gold/50 text-gold shadow-[0_0_12px_rgba(201,162,39,0.3)]"
+              : "bg-bg-base border-bg-elevated/50 text-gold focus:border-gold/40"
+          }`}
           placeholder="#"
         />
 
@@ -152,7 +204,12 @@ function CombatantRow({ combatant, onHpChange, onInitiativeChange }) {
               {combatant.name}
             </span>
             {isDead && <Skull className="w-3.5 h-3.5 text-danger" />}
-            {combatant.isAlly && (
+            {combatant.isPC && (
+              <span className="text-[10px] bg-gold/15 text-gold px-1.5 py-0.5 rounded-full">
+                PC
+              </span>
+            )}
+            {combatant.isAlly && !combatant.isPC && (
               <span className="text-[10px] bg-success/15 text-success-light px-1.5 py-0.5 rounded-full">
                 Ally
               </span>
@@ -201,6 +258,12 @@ function CombatantRow({ combatant, onHpChange, onInitiativeChange }) {
       {/* HP Bar */}
       <HPBar current={combatant.hp} max={combatant.maxHp} />
 
+      {/* Condition Toggles */}
+      <ConditionToggles
+        conditions={combatant.conditions}
+        onToggle={(condition) => onConditionToggle(condition)}
+      />
+
       {/* Notes */}
       {combatant.notes && (
         <p className="text-xs text-parchment-dim mt-2 italic">
@@ -211,7 +274,7 @@ function CombatantRow({ combatant, onHpChange, onInitiativeChange }) {
   );
 }
 
-function MapControlPanel({ encounter }) {
+function MapControlPanel({ encounter, activeTurnId, proneIds, tokenConditions = {} }) {
   const { campaign } = useCampaign()
   const { showToPlayer, lastMessage, playerCount } = useBroadcast()
   const map = campaign.battleMaps[encounter.id]
@@ -220,11 +283,7 @@ function MapControlPanel({ encounter }) {
   const [killed, setKilled] = useState(new Set())
   const [tokenPositions, setTokenPositions] = useState({})
 
-  if (!map || playerCount === 0) return null
-
-  const enemies = Object.entries(map.tokens).filter(([, t]) => !t.ally)
-
-  // Listen for player moves
+  // Listen for player moves — must be before any early return
   useEffect(() => {
     if (lastMessage?.type === "move") {
       setTokenPositions(prev => ({
@@ -233,6 +292,10 @@ function MapControlPanel({ encounter }) {
       }))
     }
   }, [lastMessage])
+
+  if (!map || playerCount === 0) return null
+
+  const enemies = Object.entries(map.tokens).filter(([, t]) => !t.ally)
 
   const handleShowMap = () => {
     showToPlayer("map", encounter.id)
@@ -265,6 +328,15 @@ function MapControlPanel({ encounter }) {
         showToPlayer("battleWon", null, { encounterName: encounter.name })
       }, 800)
     }
+  }
+
+  const handleProne = (tokenId) => {
+    const isProne = proneIds.has(tokenId)
+    const currentConds = tokenConditions[tokenId] || []
+    const newConds = isProne
+      ? currentConds.filter((c) => c !== "prone")
+      : [...currentConds, "prone"]
+    showToPlayer("conditions", null, { tokenId, conditions: newConds })
   }
 
   const handleTokenMove = (tokenId, x, y) => {
@@ -319,6 +391,9 @@ function MapControlPanel({ encounter }) {
             role="dm"
             fullscreen={false}
             onTokenMove={handleTokenMove}
+            proneTokens={proneIds}
+            activeTurnToken={activeTurnId}
+            tokenConditions={tokenConditions}
           />
 
           {/* Enemy controls */}
@@ -326,6 +401,7 @@ function MapControlPanel({ encounter }) {
             {enemies.map(([id, token]) => {
               const isRevealed = revealed.has(id)
               const isDead = killed.has(id)
+              const isProne = proneIds.has(id)
               return (
                 <div
                   key={id}
@@ -360,10 +436,21 @@ function MapControlPanel({ encounter }) {
                       </button>
                     )}
                     {isRevealed && !isDead && (
-                      <button onClick={() => handleKill(id)}
-                        className="px-1.5 py-0.5 rounded text-[9px] font-medium bg-danger/15 text-danger-light hover:bg-danger/25 cursor-pointer flex items-center gap-0.5">
-                        <Skull className="w-2.5 h-2.5" /> Kill
-                      </button>
+                      <>
+                        <button onClick={() => handleProne(id)}
+                          title="Toggle prone — token flattens on map"
+                          className={`px-1.5 py-0.5 rounded text-[9px] font-medium cursor-pointer flex items-center gap-0.5 transition-all ${
+                            isProne
+                              ? "bg-orange-500/20 text-orange-400 border border-orange-500/30"
+                              : "bg-orange-500/10 text-orange-400/60 hover:bg-orange-500/15 border border-transparent"
+                          }`}>
+                          <PersonStanding className="w-2.5 h-2.5" /> Prone
+                        </button>
+                        <button onClick={() => handleKill(id)}
+                          className="px-1.5 py-0.5 rounded text-[9px] font-medium bg-danger/15 text-danger-light hover:bg-danger/25 cursor-pointer flex items-center gap-0.5">
+                          <Skull className="w-2.5 h-2.5" /> Kill
+                        </button>
+                      </>
                     )}
                     {isDead && (
                       <span className="text-[9px] text-danger">Dead</span>
@@ -381,24 +468,63 @@ function MapControlPanel({ encounter }) {
 
 function EncounterPanel({ encounter, campaignId }) {
   const [open, setOpen] = useState(false);
+  const { showToPlayer, playerCount } = useBroadcast();
+  const { campaign } = useCampaign();
+  const mapExists = !!campaign.battleMaps[encounter.id];
 
-  const defaultCombatants = () => [
-    ...encounter.enemies.map((e) => ({ ...e, isAlly: false, initiative: null })),
-    ...encounter.allies.map((a) => ({ ...a, isAlly: true, initiative: null })),
-  ];
+  const map = campaign.battleMaps[encounter.id];
+
+  const defaultCombatants = () => {
+    const list = [
+      ...encounter.enemies.map((e) => ({ ...e, isAlly: false, initiative: null, conditions: [] })),
+      ...encounter.allies.map((a) => ({ ...a, isAlly: true, initiative: null, conditions: [] })),
+    ];
+    // Auto-add PC if the map has a player token
+    if (map?.tokens?.player) {
+      list.unshift({
+        id: "player", name: "Player", isAlly: true, isPC: true,
+        hp: 25, maxHp: 25, ac: 15, initiative: null, conditions: [], notes: "",
+      });
+    }
+    return list;
+  };
 
   const [combatants, setCombatants] = usePersistedState(
     `dm:${campaignId}:encounter:${encounter.id}:combatants`,
     defaultCombatants()
   );
+
+  // Migrate: inject PC if persisted state predates the PC addition
+  useEffect(() => {
+    if (map?.tokens?.player && !combatants.find((c) => c.id === "player")) {
+      setCombatants((prev) => [{
+        id: "player", name: "Player", isAlly: true, isPC: true,
+        hp: 25, maxHp: 25, ac: 15, initiative: null, conditions: [], notes: "",
+      }, ...prev]);
+    }
+  }, []); // run once on mount
   const [round, setRound] = usePersistedState(
     `dm:${campaignId}:encounter:${encounter.id}:round`,
     1
   );
+  const [activeTurnId, setActiveTurnId] = usePersistedState(
+    `dm:${campaignId}:encounter:${encounter.id}:activeTurn`,
+    null
+  );
+
+  // Map combatant IDs → map token IDs. Enemies match directly; allies use npcId.
+  const toTokenId = useCallback((combatantId) => {
+    if (!map) return combatantId;
+    if (map.tokens[combatantId]) return combatantId; // direct match (enemies)
+    const combatant = combatants.find((c) => c.id === combatantId);
+    if (combatant?.npcId && map.tokens[combatant.npcId]) return combatant.npcId;
+    return combatantId;
+  }, [map, combatants]);
 
   const resetEncounter = useCallback(() => {
     setCombatants(defaultCombatants());
     setRound(1);
+    setActiveTurnId(null);
   }, [encounter]);
 
   const updateHp = useCallback((id, delta) => {
@@ -409,7 +535,11 @@ function EncounterPanel({ encounter, campaignId }) {
           : c
       )
     );
-  }, []);
+    // Broadcast floating damage number if map is live and players connected
+    if (playerCount > 0 && mapExists) {
+      showToPlayer("damage", null, { tokenId: toTokenId(id), value: delta })
+    }
+  }, [playerCount, mapExists, showToPlayer, toTokenId]);
 
   const updateInitiative = useCallback((id, val) => {
     setCombatants((prev) =>
@@ -417,9 +547,77 @@ function EncounterPanel({ encounter, campaignId }) {
     );
   }, []);
 
+  const toggleCondition = useCallback((id, condition) => {
+    let newConditions;
+    setCombatants((prev) =>
+      prev.map((c) => {
+        if (c.id !== id) return c;
+        const conditions = c.conditions || [];
+        const has = conditions.includes(condition);
+        newConditions = has
+          ? conditions.filter((x) => x !== condition)
+          : [...conditions, condition];
+        return { ...c, conditions: newConditions };
+      })
+    );
+    // Broadcast all conditions to player
+    if (playerCount > 0 && mapExists) {
+      const combatant = combatants.find((c) => c.id === id);
+      const conditions = combatant?.conditions || [];
+      const has = conditions.includes(condition);
+      const updated = has
+        ? conditions.filter((x) => x !== condition)
+        : [...conditions, condition];
+      showToPlayer("conditions", null, { tokenId: toTokenId(id), conditions: updated });
+    }
+  }, [combatants, playerCount, mapExists, showToPlayer, toTokenId]);
+
   const sorted = [...combatants].sort(
     (a, b) => (b.initiative ?? -1) - (a.initiative ?? -1)
   );
+
+  const nextTurn = useCallback(() => {
+    const alive = sorted.filter((c) => c.hp > 0);
+    if (alive.length === 0) return;
+    if (!activeTurnId) {
+      // Start combat — first combatant
+      const first = alive[0];
+      setActiveTurnId(first.id);
+      setRound(1);
+      if (playerCount > 0 && mapExists) {
+        showToPlayer("activeTurn", null, { tokenId: toTokenId(first.id) });
+      }
+      return;
+    }
+    const currentIdx = alive.findIndex((c) => c.id === activeTurnId);
+    const nextIdx = currentIdx + 1;
+    if (nextIdx >= alive.length) {
+      // Wrap to top — new round
+      const first = alive[0];
+      setActiveTurnId(first.id);
+      setRound((r) => r + 1);
+      if (playerCount > 0 && mapExists) {
+        showToPlayer("activeTurn", null, { tokenId: toTokenId(first.id) });
+      }
+    } else {
+      const next = alive[nextIdx];
+      setActiveTurnId(next.id);
+      if (playerCount > 0 && mapExists) {
+        showToPlayer("activeTurn", null, { tokenId: toTokenId(next.id) });
+      }
+    }
+  }, [sorted, activeTurnId, playerCount, mapExists, showToPlayer, toTokenId]);
+
+  // Collect conditions per token for passing to MapControlPanel / BattleMap
+  // Uses map token IDs so conditions render on the correct tokens
+  const tokenConditions = {};
+  const proneIds = new Set();
+  combatants.forEach((c) => {
+    const conds = c.conditions || [];
+    const tid = toTokenId(c.id);
+    if (conds.length > 0) tokenConditions[tid] = conds;
+    if (conds.includes("prone")) proneIds.add(tid);
+  });
 
   const diffColors = {
     Easy: "text-success-light bg-success/15",
@@ -429,9 +627,12 @@ function EncounterPanel({ encounter, campaignId }) {
 
   return (
     <div className="bg-bg-surface/40 border border-bg-elevated/30 rounded-xl overflow-hidden">
-      <button
+      <div
         onClick={() => setOpen(!open)}
         className="w-full flex items-center gap-3 px-5 py-4 text-left cursor-pointer hover:bg-bg-surface/60 transition-colors"
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setOpen(!open); } }}
       >
         {open ? (
           <ChevronDown className="w-4 h-4 text-gold-dim" />
@@ -447,7 +648,7 @@ function EncounterPanel({ encounter, campaignId }) {
             Session {encounter.session} — {encounter.location}
           </p>
         </div>
-        <span className="flex items-center gap-2">
+        <span className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
           <ShowButton type="combat" id={encounter.id} label={encounter.name} />
           <span
             className={`text-[10px] font-medium uppercase tracking-wider px-2 py-0.5 rounded-full ${
@@ -457,14 +658,14 @@ function EncounterPanel({ encounter, campaignId }) {
             {encounter.difficulty}
           </span>
         </span>
-      </button>
+      </div>
 
       {open && (
         <div className="px-5 pb-5 space-y-4">
           <p className="text-sm text-parchment/80">{encounter.description}</p>
 
           {/* Map Control Panel */}
-          <MapControlPanel encounter={encounter} />
+          <MapControlPanel encounter={encounter} activeTurnId={activeTurnId ? toTokenId(activeTurnId) : null} proneIds={proneIds} tokenConditions={tokenConditions} />
 
           {/* Terrain */}
           {encounter.terrain && (
@@ -476,29 +677,22 @@ function EncounterPanel({ encounter, campaignId }) {
             </div>
           )}
 
-          {/* Round Tracker */}
+          {/* Turn Controls */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <span className="text-xs text-text-muted uppercase tracking-wider">
-                Round
-              </span>
-              <div className="flex items-center gap-1">
-                <button
-                  onClick={() => setRound((r) => Math.max(1, r - 1))}
-                  className="p-1 rounded bg-bg-base hover:bg-bg-elevated transition-colors cursor-pointer text-text-muted"
-                >
-                  <Minus className="w-3 h-3" />
-                </button>
-                <span className="w-8 text-center text-lg font-bold text-gold">
-                  {round}
+              <button
+                onClick={nextTurn}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-gold/15 text-gold border border-gold/25 hover:bg-gold/25 transition-colors cursor-pointer"
+                title={activeTurnId ? "Advance to next combatant" : "Start combat — first in initiative order"}
+              >
+                <Zap className="w-3.5 h-3.5" />
+                {activeTurnId ? "Next Turn" : "Start Combat"}
+              </button>
+              {activeTurnId && (
+                <span className="text-xs text-text-muted">
+                  Round <span className="text-gold font-bold">{round}</span>
                 </span>
-                <button
-                  onClick={() => setRound((r) => r + 1)}
-                  className="p-1 rounded bg-bg-base hover:bg-bg-elevated transition-colors cursor-pointer text-text-muted"
-                >
-                  <Plus className="w-3 h-3" />
-                </button>
-              </div>
+              )}
             </div>
             <button
               onClick={resetEncounter}
@@ -517,6 +711,8 @@ function EncounterPanel({ encounter, campaignId }) {
                 combatant={c}
                 onHpChange={(delta) => updateHp(c.id, delta)}
                 onInitiativeChange={(val) => updateInitiative(c.id, val)}
+                onConditionToggle={(condition) => toggleCondition(c.id, condition)}
+                isActiveTurn={activeTurnId === c.id}
               />
             ))}
           </div>

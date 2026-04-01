@@ -106,6 +106,17 @@ export const clues = [
     found: false,
     handout: "coded-notes",
   },
+  {
+    id: "sealed-door",
+    name: "Sealed Door Inscription",
+    session: 2,
+    location: "Sea Caves — between Fork and Slope",
+    description: `An ancient stone door with three rotating rings of carved runes. Solving the puzzle reveals an ancient warning inscription and a Tideward Amulet (advantage on WIS saves in the caves). The inscription proves the founders built Thornhaven deliberately above the caves as a watchtower.`,
+    dc: "Interactive puzzle (no check required)",
+    leadsTo: ["Proves founders sealed the caves deliberately", "Tideward Amulet (adv. on WIS saves in caves)", "Direct counter to Selen's argument"],
+    found: false,
+    handout: "spiral-puzzle",
+  },
 ];
 
 export const failsafes = [

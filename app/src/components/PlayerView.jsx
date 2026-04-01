@@ -1,10 +1,12 @@
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, useCallback } from "react"
 import { useBroadcast } from "../hooks/useBroadcast"
 import { useCampaign } from "../hooks/useCampaign"
 import SceneDisplay from "./SceneDisplay"
 import BattleMap from "./BattleMap"
 import HandoutDisplay from "./HandoutDisplay"
 import Particles from "./Particles"
+
+let floatingIdCounter = 0
 
 export default function PlayerView() {
   const { campaign } = useCampaign()
@@ -17,13 +19,25 @@ export default function PlayerView() {
   const [activeMap, setActiveMap] = useState(null)
   const [activeHandout, setActiveHandout] = useState(null)
   const [mood, setMood] = useState("default")
+  const [campaignActive, setCampaignActive] = useState(false)
   const [revealedTokens, setRevealedTokens] = useState(new Set())
   const [tokenPositions, setTokenPositions] = useState({})
   const [killedTokens, setKilledTokens] = useState(new Set())
   const [victory, setVictory] = useState(null)
+  const [tokenConditions, setTokenConditions] = useState({})  // { tokenId: ["prone", "stunned", ...] }
+  const [activeTurnToken, setActiveTurnToken] = useState(null)
+  const [floatingNumbers, setFloatingNumbers] = useState([])
+  const [dyingTokens, setDyingTokens] = useState(new Set())
 
   useEffect(() => {
     if (!lastMessage) return
+
+    // Any DM message means the campaign is active
+    setCampaignActive(true)
+
+    if (lastMessage.type === "selectCampaign") {
+      return
+    }
 
     if (lastMessage.type === "mood") {
       setMood(lastMessage.mood)
@@ -40,6 +54,10 @@ export default function PlayerView() {
         setTokenPositions({})
         setKilledTokens(new Set())
         setVictory(null)
+        setTokenConditions({})
+        setActiveTurnToken(null)
+        setFloatingNumbers([])
+        setDyingTokens(new Set())
         setTransitioning(false)
       }, 600)
       return
@@ -58,6 +76,10 @@ export default function PlayerView() {
           setTokenPositions({})
           setKilledTokens(new Set())
           setVictory(null)
+          setTokenConditions({})
+          setActiveTurnToken(null)
+          setFloatingNumbers([])
+          setDyingTokens(new Set())
           setTransitioning(false)
         }, 600)
       }
@@ -79,15 +101,55 @@ export default function PlayerView() {
       return
     }
 
-    // Token kill — mark as dead
+    // Token kill — play death animation, then remove
     if (lastMessage.type === "kill") {
-      setKilledTokens(prev => new Set([...prev, lastMessage.tokenId]))
+      const tokenId = lastMessage.tokenId
+      setDyingTokens(prev => new Set([...prev, tokenId]))
+      // After animation, fully remove
+      setTimeout(() => {
+        setDyingTokens(prev => {
+          const next = new Set(prev)
+          next.delete(tokenId)
+          return next
+        })
+        setKilledTokens(prev => new Set([...prev, tokenId]))
+      }, 1200)
       return
     }
 
     // Battle won!
     if (lastMessage.type === "battleWon") {
       setVictory(lastMessage.encounterName || "Battle")
+      return
+    }
+
+    // Conditions update (prone, concentrating, stunned, frightened)
+    if (lastMessage.type === "conditions") {
+      setTokenConditions(prev => ({
+        ...prev,
+        [lastMessage.tokenId]: lastMessage.conditions || [],
+      }))
+      return
+    }
+
+    // Active turn
+    if (lastMessage.type === "activeTurn") {
+      setActiveTurnToken(lastMessage.tokenId || null)
+      return
+    }
+
+    // Floating damage number
+    if (lastMessage.type === "damage") {
+      const entry = {
+        id: ++floatingIdCounter,
+        tokenId: lastMessage.tokenId,
+        value: lastMessage.value,
+      }
+      setFloatingNumbers(prev => [...prev, entry])
+      // Auto-remove after 2s
+      setTimeout(() => {
+        setFloatingNumbers(prev => prev.filter(n => n.id !== entry.id))
+      }, 2000)
       return
     }
 
@@ -134,6 +196,16 @@ export default function PlayerView() {
     }
   }, [lastMessage])
 
+  // Build visible tokens: revealed minus killed (dying tokens stay visible via dyingTokens prop)
+  const visibleTokens = new Set([...revealedTokens].filter(id => !killedTokens.has(id)))
+
+  // Derive proneTokens from tokenConditions
+  const proneTokens = new Set(
+    Object.entries(tokenConditions)
+      .filter(([, conds]) => conds.includes("prone"))
+      .map(([id]) => id)
+  )
+
   return (
     <div className="fixed inset-0 overflow-hidden bg-black">
       {/* Connection indicator */}
@@ -162,7 +234,7 @@ export default function PlayerView() {
       {activeMap ? (
         <BattleMap
           map={activeMap}
-          revealedTokens={new Set([...revealedTokens].filter(id => !killedTokens.has(id)))}
+          revealedTokens={visibleTokens}
           tokenPositions={tokenPositions}
           role="player"
           fullscreen
@@ -170,13 +242,23 @@ export default function PlayerView() {
             setTokenPositions(prev => ({ ...prev, [tokenId]: { x, y } }))
             showToPlayer("move", null, { tokenId, x, y })
           }}
+          proneTokens={proneTokens}
+          activeTurnToken={activeTurnToken}
+          dyingTokens={dyingTokens}
+          floatingNumbers={floatingNumbers}
+          tokenConditions={tokenConditions}
         />
       ) : activeHandout ? (
         <HandoutDisplay handout={activeHandout} />
       ) : scene ? (
         <SceneDisplay scene={scene} />
       ) : (
-        <IdleScreen title={campaign.title} mood={moods?.[mood] || moods?.default} />
+        <IdleScreen
+          title={campaignActive ? campaign.title : "Awaiting Adventure"}
+          subtitle={campaignActive ? campaign.subtitle : null}
+          campaignId={campaignActive ? campaign.id : null}
+          mood={moods?.[mood] || moods?.default}
+        />
       )}
     </div>
   )
@@ -309,9 +391,15 @@ function VictoryScreen() {
   )
 }
 
-function IdleScreen({ title, mood }) {
+function IdleScreen({ title, subtitle, campaignId, mood }) {
   const [prevMood, setPrevMood] = useState(mood)
   const [fading, setFading] = useState(false)
+  const [entered, setEntered] = useState(false)
+
+  useEffect(() => {
+    const t = setTimeout(() => setEntered(true), 100)
+    return () => clearTimeout(t)
+  }, [])
 
   useEffect(() => {
     if (mood && mood.id !== prevMood?.id) {
@@ -327,6 +415,7 @@ function IdleScreen({ title, mood }) {
   const gradient = mood?.gradient || ["#0d1b2a", "#070b14", "#020204"]
   const prevGradient = prevMood?.gradient || ["#0d1b2a", "#070b14", "#020204"]
   const accentColor = mood?.accentColor || "#c9a227"
+  const isThornhaven = campaignId === "thornhaven"
 
   return (
     <div className="h-screen w-screen flex flex-col items-center justify-center relative overflow-hidden">
@@ -363,6 +452,7 @@ function IdleScreen({ title, mood }) {
         </div>
       )}
 
+      {/* Bottom gradient wash */}
       <div className="absolute bottom-0 left-0 right-0 h-1/3" style={{
         background: `linear-gradient(to top, ${gradient[2]} 0%, transparent 100%)`,
       }}>
@@ -371,31 +461,123 @@ function IdleScreen({ title, mood }) {
           animation: "shimmerDrift 20s linear infinite",
         }} />
       </div>
-      <div className="relative z-10 text-center px-8">
-        <h1
-          className="font-[family-name:var(--font-display)] text-5xl md:text-7xl font-bold tracking-wider mb-4 transition-colors duration-2000"
-          style={{
-            color: accentColor,
-            textShadow: `0 0 40px ${accentColor}25, 0 0 80px ${accentColor}0d`,
-            animation: "breathe 6s ease-in-out infinite",
-            transitionDuration: "2000ms",
-          }}
-        >
-          {title}
-        </h1>
-        <div className="w-32 h-px mx-auto bg-gradient-to-r from-transparent via-gold-dim to-transparent mb-4" />
-        <p className="text-parchment/30 text-sm tracking-[0.3em] uppercase font-light">
-          Awaiting the Dungeon Master
-        </p>
-      </div>
-      <div className="absolute bottom-12 opacity-[0.03]">
-        <svg width="200" height="200" viewBox="0 0 200 200">
-          <path
-            d="M100,100 m-80,0 a80,80 0 1,1 160,0 a80,80 0 1,1 -160,0 M100,100 m-55,0 a55,55 0 1,0 110,0 a55,55 0 1,0 -110,0 M100,100 m-30,0 a30,30 0 1,1 60,0 a30,30 0 1,1 -60,0"
-            fill="none" stroke={accentColor} strokeWidth="1"
-          />
-        </svg>
-      </div>
+
+      {isThornhaven ? (
+        /* --- Thornhaven campaign idle --- */
+        <div className={`relative z-10 flex flex-col items-center px-8 transition-all duration-1500 ${
+          entered ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
+        }`} style={{ transitionDuration: "1500ms" }}>
+          {/* Large emblem */}
+          <div className={`mb-8 transition-all ${entered ? "opacity-100 scale-100" : "opacity-0 scale-90"}`}
+            style={{ transitionDuration: "2000ms", transitionDelay: "300ms" }}>
+            <svg width="160" height="160" viewBox="0 0 160 160" style={{ animation: "breathe 8s ease-in-out infinite" }}>
+              {/* Outer ring */}
+              <circle cx="80" cy="80" r="72" fill="none" stroke={accentColor} strokeWidth="1" opacity="0.3" />
+              <circle cx="80" cy="80" r="66" fill="none" stroke={accentColor} strokeWidth="0.5" opacity="0.15" />
+              {/* Inner ring */}
+              <circle cx="80" cy="80" r="44" fill="none" stroke={accentColor} strokeWidth="0.5" opacity="0.2" />
+
+              {/* Compass points */}
+              {[0, 90, 180, 270].map((angle) => {
+                const rad = (angle * Math.PI) / 180
+                return (
+                  <line key={angle}
+                    x1={80 + Math.cos(rad) * 36} y1={80 + Math.sin(rad) * 36}
+                    x2={80 + Math.cos(rad) * 68} y2={80 + Math.sin(rad) * 68}
+                    stroke={accentColor} strokeWidth="1" opacity="0.25"
+                  />
+                )
+              })}
+              {[45, 135, 225, 315].map((angle) => {
+                const rad = (angle * Math.PI) / 180
+                return (
+                  <line key={angle}
+                    x1={80 + Math.cos(rad) * 48} y1={80 + Math.sin(rad) * 48}
+                    x2={80 + Math.cos(rad) * 64} y2={80 + Math.sin(rad) * 64}
+                    stroke={accentColor} strokeWidth="0.5" opacity="0.15"
+                  />
+                )
+              })}
+
+              {/* Central spiral */}
+              <path
+                d={`M 80 80 c 2,-10 12,-17 22,-14 c 12,3 17,17 12,29 c -6,15 -24,20 -36,12 c -17,-9 -22,-32 -10,-46 c 12,-19 38,-24 55,-10`}
+                fill="none" stroke={accentColor} strokeWidth="1.5" strokeLinecap="round" opacity="0.5"
+              />
+
+              {/* Waves */}
+              <path
+                d="M 40,120 q 10,-8 20,0 q 10,8 20,0 q 10,-8 20,0 q 10,8 20,0"
+                fill="none" stroke={accentColor} strokeWidth="0.8" strokeLinecap="round" opacity="0.2"
+              />
+              <path
+                d="M 48,128 q 8,-6 16,0 q 8,6 16,0 q 8,-6 16,0 q 8,6 16,0"
+                fill="none" stroke={accentColor} strokeWidth="0.5" strokeLinecap="round" opacity="0.12"
+              />
+            </svg>
+          </div>
+
+          {/* Title */}
+          <h1
+            className="font-[family-name:var(--font-display)] text-5xl md:text-7xl font-bold tracking-wider mb-3 text-center transition-colors"
+            style={{
+              color: accentColor,
+              textShadow: `0 0 60px ${accentColor}30, 0 0 120px ${accentColor}10, 0 4px 30px rgba(0,0,0,0.5)`,
+              animation: "breathe 6s ease-in-out infinite",
+              transitionDuration: "2000ms",
+            }}
+          >
+            {title}
+          </h1>
+
+          {/* Decorative divider */}
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-16 h-px" style={{ background: `linear-gradient(to right, transparent, ${accentColor}40)` }} />
+            <svg width="12" height="12" viewBox="0 0 12 12" style={{ opacity: 0.4 }}>
+              <path d="M6,1 L11,6 L6,11 L1,6 Z" fill="none" stroke={accentColor} strokeWidth="1" />
+            </svg>
+            <div className="w-16 h-px" style={{ background: `linear-gradient(to left, transparent, ${accentColor}40)` }} />
+          </div>
+
+          {/* Subtitle */}
+          {subtitle && (
+            <p className="text-parchment/25 text-sm tracking-[0.3em] uppercase font-light mb-6">
+              {subtitle}
+            </p>
+          )}
+
+          <p className="text-parchment/20 text-xs tracking-[0.4em] uppercase">
+            Awaiting the Dungeon Master
+          </p>
+        </div>
+      ) : (
+        /* --- Generic idle (no campaign selected) --- */
+        <div className={`relative z-10 text-center px-8 transition-all duration-1000 ${
+          entered ? "opacity-100" : "opacity-0"
+        }`}>
+          <div className="mb-6 opacity-[0.06]">
+            <svg width="120" height="120" viewBox="0 0 120 120">
+              <circle cx="60" cy="60" r="50" fill="none" stroke="#c9a227" strokeWidth="1" />
+              <circle cx="60" cy="60" r="35" fill="none" stroke="#c9a227" strokeWidth="0.5" />
+              <circle cx="60" cy="60" r="20" fill="none" stroke="#c9a227" strokeWidth="0.5" />
+            </svg>
+          </div>
+          <h1
+            className="font-[family-name:var(--font-display)] text-4xl md:text-6xl font-bold tracking-wider mb-4"
+            style={{
+              color: "#c9a22740",
+              textShadow: "0 0 40px rgba(201,162,39,0.05)",
+              animation: "breathe 6s ease-in-out infinite",
+            }}
+          >
+            {title}
+          </h1>
+          <div className="w-24 h-px mx-auto bg-gradient-to-r from-transparent via-gold-dim/20 to-transparent mb-4" />
+          <p className="text-parchment/15 text-xs tracking-[0.4em] uppercase font-light">
+            Awaiting the Dungeon Master
+          </p>
+        </div>
+      )}
     </div>
   )
 }

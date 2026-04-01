@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   BookOpen,
   Users,
@@ -7,6 +7,7 @@ import {
   Map,
   Monitor,
   MonitorOff,
+  Home,
   Wifi,
   WifiOff,
   X,
@@ -19,8 +20,11 @@ import CharactersTab from "./components/CharactersTab";
 import EncounterTracker from "./components/EncounterTracker";
 import ClueTracker from "./components/ClueTracker";
 import PlayerView from "./components/PlayerView";
+import CampaignLanding from "./components/CampaignLanding";
 
-const isPlayerMode = new URLSearchParams(window.location.search).has("player");
+const params = new URLSearchParams(window.location.search);
+const isPlayerMode = params.has("player");
+const initialCampaign = params.get("campaign");
 
 const tabs = [
   { id: "story", label: "Story", icon: BookOpen },
@@ -31,18 +35,48 @@ const tabs = [
 
 function DmApp() {
   const { campaign } = useCampaign();
+  const [showLanding, setShowLanding] = useState(!initialCampaign);
   const [activeTab, setActiveTab] = usePersistedState(
     `dm:${campaign.id}:activeTab`,
     "story"
   );
-  const { connected, playerCount, clearPlayer, showToPlayer } = useBroadcast();
+  const { connected, playerCount, clearPlayer, showToPlayer, lastMessage } = useBroadcast();
   const [activeMood, setActiveMood] = useState("default");
+  const [puzzleToast, setPuzzleToast] = useState(false);
   const moodEntries = campaign.moods ? Object.values(campaign.moods) : [];
+
+  useEffect(() => {
+    if (lastMessage?.type === "puzzleSolved") {
+      setPuzzleToast(true);
+      const t = setTimeout(() => setPuzzleToast(false), 5000);
+      return () => clearTimeout(t);
+    }
+  }, [lastMessage]);
 
   const playerUrl = useMemo(() => {
     const loc = window.location;
     return `${loc.protocol}//${loc.host}/?player`;
   }, []);
+
+  const enterCampaign = (campaignId) => {
+    const url = new URL(window.location);
+    url.searchParams.set("campaign", campaignId || campaign.id);
+    window.history.pushState({}, "", url);
+    setShowLanding(false);
+  };
+
+  const goToLanding = () => {
+    const url = new URL(window.location);
+    url.searchParams.delete("campaign");
+    window.history.pushState({}, "", url);
+    setShowLanding(true);
+  };
+
+  if (showLanding) {
+    return (
+      <CampaignLanding onEnterCampaign={enterCampaign} />
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -50,6 +84,13 @@ function DmApp() {
       <header className="bg-bg-base border-b border-gold-dim/30 px-6 py-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
+            <button
+              onClick={goToLanding}
+              className="p-1.5 rounded-lg text-text-muted hover:text-gold hover:bg-gold/10 transition-colors cursor-pointer"
+              title="Back to campaigns"
+            >
+              <Home className="w-5 h-5" />
+            </button>
             <Map className="w-7 h-7 text-gold" />
             <div>
               <h1 className="font-[family-name:var(--font-display)] text-xl font-semibold text-gold tracking-wide">
@@ -158,6 +199,21 @@ function DmApp() {
           {activeTab === "clues" && <ClueTracker />}
         </div>
       </main>
+
+      {puzzleToast && (
+        <div
+          className="fixed bottom-6 right-6 z-50 px-5 py-3 rounded-lg text-sm font-medium"
+          style={{
+            background: "linear-gradient(135deg, #1a2e28, #16213e)",
+            border: "1px solid rgba(39, 174, 96, 0.25)",
+            color: "#2ecc71",
+            boxShadow: "0 4px 20px rgba(39, 174, 96, 0.15)",
+            animation: "inscriptionFade 0.4s ease-out",
+          }}
+        >
+          The sealed door has been opened
+        </div>
+      )}
     </div>
   );
 }

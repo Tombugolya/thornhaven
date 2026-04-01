@@ -98,7 +98,7 @@ export const battleMaps = {
       // Cave walls (irregular)
       { type: "cave", points: "0,0 800,0 800,700 0,700", innerPoints: "80,80 720,60 750,350 700,640 100,660 60,400", color: "#0a0a18" },
       // Water (lower half)
-      { type: "water", x: 60, y: 350, w: 680, h: 310, label: "Waist-Deep Water", color: "#0a1428" },
+      { type: "water", x: 60, y: 350, w: 680, h: 310, label: "Waist-Deep Water", color: "#0c1e3a" },
       // Altar
       { type: "altar", x: 340, y: 160, w: 120, h: 80, label: "Black Stone Altar", color: "#0e0e20" },
       // Cave entrance

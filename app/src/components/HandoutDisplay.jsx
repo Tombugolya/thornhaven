@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react"
+import SpiralPuzzle from "./SpiralPuzzle"
 
 const paperStyles = {
   parchment: {
@@ -164,6 +165,11 @@ export default function HandoutDisplay({ handout }) {
   useEffect(() => { const t = setTimeout(() => setEntered(true), 100); return () => clearTimeout(t) }, [])
 
   const paper = paperStyles[handout.paperType] || paperStyles.parchment
+
+  // Puzzle handout — render interactive puzzle
+  if (handout.isPuzzle) {
+    return <SpiralPuzzle handout={handout} />
+  }
 
   // Map handout — render image directly without paper wrapper
   if (handout.isMap) {

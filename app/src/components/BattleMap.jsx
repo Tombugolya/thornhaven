@@ -1,5 +1,19 @@
 import { useEffect, useState, useRef, useCallback } from "react"
 
+const CONDITION_COLORS = {
+  prone: "#ff9944",
+  concentrating: "#44aaff",
+  stunned: "#ffcc00",
+  frightened: "#cc66ff",
+}
+
+const CONDITION_ICONS = {
+  prone: "P",
+  concentrating: "C",
+  stunned: "S",
+  frightened: "F",
+}
+
 function screenToSVG(svg, clientX, clientY) {
   const pt = svg.createSVGPoint()
   pt.x = clientX
@@ -7,7 +21,7 @@ function screenToSVG(svg, clientX, clientY) {
   return pt.matrixTransform(svg.getScreenCTM().inverse())
 }
 
-function Token({ id, token, pos, revealed, delay = 0, draggable, onDragStart, onDrag, onDragEnd, draggingId }) {
+function Token({ id, token, pos, revealed, delay = 0, draggable, onDragStart, onDrag, onDragEnd, draggingId, prone, isActiveTurn, dying, conditions = [] }) {
   const [visible, setVisible] = useState(false)
   const isDragging = draggingId === id
 
@@ -18,7 +32,7 @@ function Token({ id, token, pos, revealed, delay = 0, draggable, onDragStart, on
     }
   }, [revealed, delay])
 
-  if (!revealed) return null
+  if (!revealed && !dying) return null
 
   const x = pos?.x ?? token.x
   const y = pos?.y ?? token.y
@@ -28,14 +42,19 @@ function Token({ id, token, pos, revealed, delay = 0, draggable, onDragStart, on
   return (
     <g
       style={{
-        opacity: visible ? 1 : 0,
-        transform: visible ? "scale(1)" : "scale(0.3)",
+        opacity: dying ? 0 : visible ? 1 : 0,
+        transform: dying
+          ? "scale(0.3)"
+          : visible ? "scale(1)" : "scale(0.3)",
         transformOrigin: `${x}px ${y}px`,
         transition: isDragging
           ? "none"
+          : dying
+          ? "opacity 1.2s ease-out, transform 1.2s ease-out, filter 0.6s ease-out"
           : "opacity 0.8s ease-out, transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)",
         cursor: draggable ? (isDragging ? "grabbing" : "grab") : "default",
-        pointerEvents: draggable ? "auto" : "none",
+        pointerEvents: draggable && !dying ? "auto" : "none",
+        filter: dying ? "grayscale(1)" : "none",
       }}
       onPointerDown={(e) => {
         if (!draggable) return
@@ -55,6 +74,13 @@ function Token({ id, token, pos, revealed, delay = 0, draggable, onDragStart, on
         onDragEnd?.(id, e)
       }}
     >
+      {/* Active turn ring */}
+      {isActiveTurn && !dying && (
+        <circle cx={x} cy={y} r={r + 10} fill="none" stroke="#c9a227" strokeWidth="2.5" opacity="0.7">
+          <animate attributeName="r" values={`${r + 6};${r + 14};${r + 6}`} dur="2s" repeatCount="indefinite" />
+          <animate attributeName="opacity" values="0.7;0.3;0.7" dur="2s" repeatCount="indefinite" />
+        </circle>
+      )}
       {/* Drag ring */}
       {isDragging && (
         <circle cx={x} cy={y} r={r + 6} fill="none" stroke="#c9a227" strokeWidth="2" opacity="0.6">
@@ -62,32 +88,113 @@ function Token({ id, token, pos, revealed, delay = 0, draggable, onDragStart, on
         </circle>
       )}
       {/* Reveal glow */}
-      {!token.ally && !isDragging && (
+      {!token.ally && !isDragging && !dying && (
         <circle cx={x} cy={y} r={r + 12} fill={glowColor} opacity="0.15">
           <animate attributeName="r" values={`${r + 8};${r + 16};${r + 8}`} dur="3s" repeatCount="indefinite" />
           <animate attributeName="opacity" values="0.15;0.08;0.15" dur="3s" repeatCount="indefinite" />
         </circle>
       )}
       {/* Token shadow */}
-      <circle cx={x + 2} cy={y + 2} r={r} fill="black" opacity="0.4" />
-      {/* Token body */}
-      <circle cx={x} cy={y} r={r}
-        fill={token.color} opacity={isDragging ? 1 : 0.9}
-        stroke={isDragging ? "#c9a227" : token.ally ? token.color : "#ff6666"}
-        strokeWidth={isDragging ? 3 : token.ally ? 1.5 : 2.5} />
+      <ellipse
+        cx={x + 2} cy={y + 2}
+        rx={prone ? r : r}
+        ry={prone ? r * 0.55 : r}
+        fill="black" opacity="0.4"
+        style={{ transition: "ry 0.4s ease-in-out" }}
+      />
+      {/* Token body — ellipse when prone */}
+      <ellipse
+        cx={x} cy={y}
+        rx={r}
+        ry={prone ? r * 0.55 : r}
+        fill={prone ? `${token.color}99` : dying ? "#666" : token.color}
+        opacity={isDragging ? 1 : 0.9}
+        stroke={isDragging ? "#c9a227" : dying ? "#888" : token.ally ? token.color : "#ff6666"}
+        strokeWidth={isDragging ? 3 : token.ally ? 1.5 : 2.5}
+        style={{ transition: "ry 0.4s ease-in-out" }}
+      />
+      {/* Death skull overlay */}
+      {dying && (
+        <text x={x} y={y + 2} textAnchor="middle" dominantBaseline="middle"
+          fontSize="18" style={{ pointerEvents: "none" }}>
+          💀
+        </text>
+      )}
       {/* Initials */}
-      <text x={x} y={y + 1} textAnchor="middle" dominantBaseline="middle"
-        fill="white" fontSize="11" fontWeight="bold" fontFamily="Inter, sans-serif"
-        style={{ pointerEvents: "none" }}>
-        {token.initials}
-      </text>
+      {!dying && (
+        <text x={x} y={y + 1} textAnchor="middle" dominantBaseline="middle"
+          fill="white" fontSize={prone ? "9" : "11"} fontWeight="bold" fontFamily="Inter, sans-serif"
+          style={{ pointerEvents: "none", transition: "font-size 0.4s ease-in-out" }}>
+          {token.initials}
+        </text>
+      )}
       {/* Label below */}
-      <text x={x} y={y + r + 14} textAnchor="middle"
-        fill={token.color} fontSize="9" fontFamily="Inter, sans-serif" opacity="0.8"
-        style={{ pointerEvents: "none" }}>
+      <text x={x} y={y + (prone ? r * 0.55 : r) + 14} textAnchor="middle"
+        fill={dying ? "#888" : token.color} fontSize="9" fontFamily="Inter, sans-serif" opacity="0.8"
+        style={{ pointerEvents: "none", transition: "y 0.4s ease-in-out" }}>
         {token.label}
       </text>
+      {/* Condition indicators — small colored dots with letters */}
+      {conditions.length > 0 && !dying && (
+        <g style={{ pointerEvents: "none" }}>
+          {conditions.map((cond, i) => {
+            const total = conditions.length
+            const dotR = 5
+            const spacing = 13
+            const startX = x - ((total - 1) * spacing) / 2
+            const dotX = startX + i * spacing
+            const dotY = y - (prone ? r * 0.55 : r) - 10
+            const color = CONDITION_COLORS[cond] || "#aaa"
+            return (
+              <g key={cond}>
+                <circle cx={dotX} cy={dotY} r={dotR} fill={color} opacity="0.85"
+                  stroke={color} strokeWidth="0.5" />
+                <text x={dotX} y={dotY + 1} textAnchor="middle" dominantBaseline="middle"
+                  fill="#000" fontSize="6" fontWeight="bold" fontFamily="Inter, sans-serif">
+                  {CONDITION_ICONS[cond] || "?"}
+                </text>
+              </g>
+            )
+          })}
+        </g>
+      )}
     </g>
+  )
+}
+
+function FloatingNumber({ x, y, value }) {
+  const [phase, setPhase] = useState("enter")
+
+  useEffect(() => {
+    // Start animation immediately, "exit" after 100ms to trigger CSS transition
+    const t = requestAnimationFrame(() => setPhase("exit"))
+    return () => cancelAnimationFrame(t)
+  }, [])
+
+  const isHeal = value > 0
+  const display = isHeal ? `+${value}` : `${value}`
+
+  return (
+    <text
+      x={x}
+      y={y - 25}
+      textAnchor="middle"
+      fill={isHeal ? "#44ff44" : "#ff4444"}
+      fontSize="16"
+      fontWeight="bold"
+      fontFamily="Inter, sans-serif"
+      style={{
+        pointerEvents: "none",
+        opacity: phase === "enter" ? 1 : 0,
+        transform: phase === "enter" ? "translateY(0)" : "translateY(-30px)",
+        transition: "opacity 1.5s ease-out, transform 1.5s ease-out",
+        textShadow: isHeal
+          ? "0 0 8px rgba(68,255,68,0.6)"
+          : "0 0 8px rgba(255,68,68,0.6)",
+      }}
+    >
+      {display}
+    </text>
   )
 }
 
@@ -224,18 +331,18 @@ function RenderFeatures({ features, mapWidth, mapHeight }) {
         return (
           <g key={i}>
             <defs>
-              <pattern id="waterPattern" width="60" height="20" patternUnits="userSpaceOnUse">
-                <path d="M0,10 Q15,5 30,10 Q45,15 60,10" fill="none" stroke="#1a3050" strokeWidth="0.5" opacity="0.4">
-                  <animate attributeName="d" values="M0,10 Q15,5 30,10 Q45,15 60,10;M0,10 Q15,15 30,10 Q45,5 60,10;M0,10 Q15,5 30,10 Q45,15 60,10" dur="6s" repeatCount="indefinite" />
+              <pattern id="waterPattern" width="160" height="65" patternUnits="userSpaceOnUse">
+                <path d="M0,32 Q40,14 80,32 Q120,50 160,32" fill="none" stroke="#2a4a70" strokeWidth="2.2" opacity="0.35">
+                  <animate attributeName="d" values="M0,32 Q40,14 80,32 Q120,50 160,32;M0,32 Q40,50 80,32 Q120,14 160,32;M0,32 Q40,14 80,32 Q120,50 160,32" dur="8s" repeatCount="indefinite" />
                 </path>
               </pattern>
             </defs>
-            <rect x={f.x} y={f.y} width={f.w} height={f.h} fill={f.color || "#0a1428"} opacity="0.7" rx="3" />
+            <rect x={f.x} y={f.y} width={f.w} height={f.h} fill={f.color || "#0c1e3a"} opacity="0.85" rx="3" />
             <rect x={f.x} y={f.y} width={f.w} height={f.h} fill="url(#waterPattern)" rx="3" />
-            <line x1={f.x} y1={f.y} x2={f.x + f.w} y2={f.y} stroke="#1a4060" strokeWidth="2" opacity="0.4" />
+            <line x1={f.x} y1={f.y} x2={f.x + f.w} y2={f.y} stroke="#2a5080" strokeWidth="2.5" opacity="0.5" />
             {f.label && (
               <text x={f.x + f.w / 2} y={f.y + 18} textAnchor="middle"
-                fill="#3a6090" fontSize="9" fontFamily="Inter, sans-serif" fontStyle="italic" opacity="0.7">
+                fill="#4a80b0" fontSize="9" fontFamily="Inter, sans-serif" fontStyle="italic" opacity="0.8">
                 {f.label.split("\n").map((line, j) => (
                   <tspan key={j} x={f.x + f.w / 2} dy={j === 0 ? 0 : 13}>{line}</tspan>
                 ))}
@@ -313,8 +420,16 @@ function RenderFeatures({ features, mapWidth, mapHeight }) {
  *  - role: "dm" | "player" — determines which tokens are draggable
  *  - onTokenMove: (tokenId, x, y) => void — called during/after drag
  *  - fullscreen: boolean — true for player view (fills screen), false for DM embed
+ *  - proneTokens: Set of token IDs that are prone
+ *  - activeTurnToken: token ID with active turn (string | null)
+ *  - dyingTokens: Set of token IDs playing death animation
+ *  - floatingNumbers: [{ id, tokenId, value }] — damage/heal numbers to display
  */
-export default function BattleMap({ map, revealedTokens, tokenPositions = {}, role = "player", onTokenMove, fullscreen = true }) {
+export default function BattleMap({
+  map, revealedTokens, tokenPositions = {}, role = "player", onTokenMove, fullscreen = true,
+  proneTokens = new Set(), activeTurnToken = null, dyingTokens = new Set(), floatingNumbers = [],
+  tokenConditions = {},
+}) {
   const [entered, setEntered] = useState(false)
   const [draggingId, setDraggingId] = useState(null)
   const [localPositions, setLocalPositions] = useState({})
@@ -384,7 +499,7 @@ export default function BattleMap({ map, revealedTokens, tokenPositions = {}, ro
       {/* Grid overlay — 40px = 5ft square */}
       <defs>
         <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
-          <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#6a8ccc" strokeWidth="0.8" opacity="0.18" />
+          <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#aaaaaa" strokeWidth="0.8" opacity="0.25" />
         </pattern>
       </defs>
       <rect width={map.width} height={map.height} fill="url(#grid)" rx="8" style={{ pointerEvents: "none" }} />
@@ -394,15 +509,33 @@ export default function BattleMap({ map, revealedTokens, tokenPositions = {}, ro
           id={id}
           token={token}
           pos={getPos(id, token)}
-          revealed={token.autoReveal || revealedTokens.has(id) || role === "dm"}
+          revealed={token.autoReveal || revealedTokens.has(id) || dyingTokens.has(id) || role === "dm"}
           delay={token.autoReveal ? 800 : 200}
           draggable={isDraggable(id, token)}
           draggingId={draggingId}
           onDragStart={handleDragStart}
           onDrag={handleDrag}
           onDragEnd={handleDragEnd}
+          prone={proneTokens.has(id)}
+          isActiveTurn={activeTurnToken === id}
+          dying={dyingTokens.has(id)}
+          conditions={tokenConditions[id] || []}
         />
       ))}
+      {/* Floating damage/heal numbers */}
+      {floatingNumbers.map((fn) => {
+        const token = map.tokens[fn.tokenId]
+        if (!token) return null
+        const pos = getPos(fn.tokenId, token)
+        return (
+          <FloatingNumber
+            key={fn.id}
+            x={pos.x}
+            y={pos.y}
+            value={fn.value}
+          />
+        )
+      })}
     </svg>
   )
 

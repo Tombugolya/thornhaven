@@ -338,6 +338,8 @@ PASSAGE (60ft, bioluminescent algae)
     |
 FORK ──── LEFT: Dead end. Voss is here.
     |
+SEALED DOOR (carved spirals, partially breached)
+    |
 SLOPE DOWN (gets cold, carved symbols)
     |
 ALTAR CHAMBER (large, partially flooded)`,
@@ -354,6 +356,62 @@ ALTAR CHAMBER (large, partially flooded)`,
 **No skill checks in the caves unless something specific happens.** Don't ask for Perception rolls every 30 seconds — it kills the atmosphere. Just describe what they see and feel. Let the tension build through narration, not dice.
 
 **Speak more quietly.** Literally lower your voice when describing the caves. The player will lean in. That's immersion.`,
+      },
+      {
+        title: "The Sealed Door",
+        type: "readAloud",
+        handout: "spiral-puzzle",
+        content: `The passage narrows and then stops. A circular stone door fills the tunnel from floor to ceiling, carved with three concentric rings of symbols. The rings sit in grooves worn smooth by time. At the top of the door, a wedge-shaped keystone juts from the rock. Something about the symbols makes your eyes want to slide past them.
+
+The Undertow has been here — pry marks score the edges where someone tried to force the door. One section of the wall beside it has been crudely broken through, barely wide enough to squeeze past.`,
+      },
+      {
+        title: "Running the Door Puzzle",
+        type: "dmtip",
+        content: `**The sealed door is an interactive puzzle the player solves on their screen.** Click the "Handout" button above to send it. Each ring rotates when clicked — the player needs to align the three water-themed runes at the keystone marker.
+
+**Solution:** Wave (outer), Spiral (middle), Droplet (inner) — all aligned at the top.
+
+**If the player struggles:** Hint that "the sea-themed markings seem more deeply carved than the others" or "the keystone at the top looks like it's meant to receive something."
+
+**This puzzle is optional.** The Undertow already broke through the wall beside the door. If the player wants to skip it, they can squeeze through the breach — but they miss the inscription, the reward item, and a strong piece of evidence against Selen.
+
+**The flow:**
+1. Read the Sealed Door description aloud
+2. Send the puzzle to the player's screen (Handout button above)
+3. Let them work it out — correct runes glow faintly blue-green when aligned at the keystone
+4. When they solve it, you'll get a notification and the inscription appears on their screen
+5. Read "After the Door Opens" below, then show the inscription handout for reference`,
+      },
+      {
+        title: "After the Door Opens",
+        type: "readAloud",
+        handout: "door-inscription",
+        content: `The rings grind into alignment with a sound like the sea dragging across shingle. The door doesn't swing open — it sinks into the floor, one ring at a time, outer to inner, grinding stone against stone until only a dark archway remains.
+
+Above the opening, carved deep into the lintel, words glow with the same pale blue-green light as the algae — but steadier, brighter, as if the stone itself is remembering something it was told to say.
+
+In a small alcove to the right of the doorway, set into a carved niche like it was left there on purpose, a flat disc of dark stone hangs from a leather cord on a stone hook. The spiral carved into it turns the wrong way — counter to every other spiral in these caves.`,
+      },
+      {
+        title: "The Founders' Warning",
+        type: "dmtip",
+        content: `**Show the inscription handout** to the player (button above) so they can read it in full. The smaller text below the main warning is the real payoff — it reveals that Thornhaven was built *on purpose* above the caves, not just nearby by coincidence.
+
+**The Tideward Amulet** is the reward for solving the puzzle. When the player picks it up:
+- It's a flat dark stone disc on a leather cord, carved with a counter-spiral (opposite to the altar's spirals)
+- While wearing it in the sea caves: advantage on Wisdom saving throws, immunity to the frightened condition
+- The cold from the altar doesn't reach them — describe it as steady warmth spreading from the stone against their chest
+- **This matters in the confrontation.** If the altar reacts, the amulet shields the wearer. Selen doesn't have one. That gap is the point — the founders prepared defenses for those who understood the danger, not for those who ignored it
+- Consider granting **Inspiration** for solving the puzzle
+
+**The lore (for your reference — share as much or as little as you want):**
+
+Thornhaven wasn't founded as a fishing village. It was built as a watchtower. Centuries ago, a group of coastal scholars discovered what lay beneath the caves — not a creature exactly, but a presence. A vast, patient awareness in the deep water that had been there since before the land was land. They couldn't destroy it. They couldn't move it. So they sealed it.
+
+The altar is the lock. The caves are the vault. The town is the guard post. Generation after generation, the founding families kept watch — until they didn't. The knowledge faded into folklore. The folklore became superstition. The superstition became nothing. By the time Selen found the caves, no one in Thornhaven remembered why the town was really there.
+
+**You don't need to explain all of this.** The inscription, the amulet, and the cave itself tell the story. But knowing it helps you improvise if the player asks — like "What is it?" Answer: nobody knows. Not even the founders. They just knew enough to be afraid.`,
       },
       {
         title: "Finding Voss",

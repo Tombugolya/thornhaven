@@ -97,8 +97,11 @@ function Section({ section, forceState }) {
     <div
       className={`border-l-2 ${colorClass} rounded-r-lg overflow-hidden transition-all duration-200`}
     >
-      <button
+      <div
         onClick={() => setOpen(!open)}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setOpen(!open) } }}
         className={`w-full flex items-center gap-3 px-4 py-3 text-left cursor-pointer transition-colors duration-150 ${
           open
             ? "bg-bg-surface/80"
@@ -140,7 +143,7 @@ function Section({ section, forceState }) {
             </span>
           )}
         </span>
-      </button>
+      </div>
 
       {open && (
         <div className="px-5 py-4 space-y-2">
