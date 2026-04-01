@@ -58,6 +58,7 @@ function wsRelayPlugin() {
 }
 
 export default defineConfig({
+  base: '/thornhaven/',
   plugins: [react(), tailwindcss(), wsRelayPlugin()],
   server: {
     host: true,
