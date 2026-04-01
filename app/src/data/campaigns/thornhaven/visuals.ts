@@ -1,0 +1,257 @@
+import type { LocationVisual, CharacterVisual, CombatVisual, Mood } from "../../../types/campaign"
+
+export const locationVisuals = {
+  "thornhaven-approach": {
+    name: "The Road to Thornhaven",
+    subtitle: "A coastal path at dusk",
+    description:
+      "The salt wind carries the smell of rotting kelp and something that might be bread.",
+    gradient: ["#0d0a1a", "#1a1035", "#2d1854", "#1a2744"],
+    accentColor: "#c9a227",
+    particles: "dust",
+    elements: ["moon", "signpost", "cliffs"],
+    mood: "mysterious",
+  },
+  "salted-eel": {
+    name: "The Salted Eel",
+    subtitle: "Thornhaven's only inn",
+    description: "Warm light spills from foggy windows. The sign creaks in the wind.",
+    gradient: ["#1a0f08", "#2d1a0a", "#3d2010", "#1a1008"],
+    accentColor: "#e67e22",
+    particles: "sparks",
+    elements: ["lantern", "sign", "door"],
+    mood: "warm",
+  },
+  "magistrates-manor": {
+    name: "Magistrate's Manor",
+    subtitle: "Locked and dark",
+    description: 'A note pinned to the door reads: "DEFINITELY NOT KIDNAPPED."',
+    gradient: ["#0a0a14", "#151520", "#1a1a2a", "#0d0d18"],
+    accentColor: "#7f8c8d",
+    particles: "dust",
+    elements: ["building", "lock", "note"],
+    mood: "ominous",
+  },
+  "the-docks": {
+    name: "The Docks",
+    subtitle: "Grey water, empty berths",
+    description: "The fishing boats sit idle. An old man fishes alone, unbothered by everything.",
+    gradient: ["#0a1018", "#121e2a", "#1a2a38", "#0d1520"],
+    accentColor: "#7f8c8d",
+    particles: "fog",
+    elements: ["water", "boats", "pier"],
+    mood: "melancholy",
+  },
+  "old-saltworks": {
+    name: "The Old Saltworks",
+    subtitle: "Abandoned — officially",
+    description: "Dust, shadows, and the faint smell of meetings that ran too long.",
+    gradient: ["#0d0d0d", "#1a1510", "#2a2018", "#141010"],
+    accentColor: "#95a5a6",
+    particles: "dust",
+    elements: ["building", "trapdoor"],
+    mood: "tense",
+  },
+  "cave-entrance": {
+    name: "The Sea Caves",
+    subtitle: "Entrance at low tide",
+    description: "The rock is slick with spray. The darkness ahead feels patient.",
+    gradient: ["#050810", "#0a1018", "#101828", "#080c14"],
+    accentColor: "#4a6fa5",
+    particles: "fog",
+    elements: ["cave", "water", "rocks"],
+    mood: "foreboding",
+  },
+  "cave-passage": {
+    name: "The Passage",
+    subtitle: "Bioluminescent algae",
+    description: "Pale blue light clings to the walls. The air tastes of salt and age.",
+    gradient: ["#050a14", "#0a1424", "#0d1a30", "#081018"],
+    accentColor: "#1abc9c",
+    particles: "bioluminescence",
+    elements: ["tunnel", "algae", "drips"],
+    mood: "eerie",
+  },
+  "altar-chamber": {
+    name: "The Altar Chamber",
+    subtitle: "Something sealed. Something waiting.",
+    description:
+      "The water is unnaturally still. The black stone radiates cold that feels like loneliness.",
+    gradient: ["#020208", "#08081a", "#0a0a20", "#040410"],
+    accentColor: "#6a3fa5",
+    particles: "void",
+    elements: ["altar", "water", "spirals"],
+    mood: "dread",
+  },
+} satisfies Record<string, LocationVisual>
+
+export const characterVisuals = {
+  maren: {
+    name: "Maren Ashwick",
+    title: "Your Local Contact",
+    description:
+      "A sturdy woman with calloused hands and an expression that suggests she's been waiting for you — and isn't thrilled about it.",
+    gradient: ["#0a1020", "#122040", "#1a3060", "#0d1830"],
+    accentColor: "#3498db",
+    symbol: "shield",
+    mood: "steady",
+  },
+  selen: {
+    name: "Selen Dray",
+    title: "Harbormaster of Thornhaven",
+    description:
+      "A tall, sharp-eyed woman in a salt-stained coat. She carries herself like someone used to being obeyed.",
+    gradient: ["#1a0a20", "#2d1040", "#3d1854", "#1a0830"],
+    accentColor: "#8e44ad",
+    symbol: "anchor",
+    mood: "imposing",
+  },
+  voss: {
+    name: "Magistrate Harlan Voss",
+    title: "Magistrate of Thornhaven",
+    description:
+      "A gaunt man in filthy shirtsleeves, blinking against the light. His posture is dignified despite everything.",
+    gradient: ["#0a0a14", "#181828", "#20203a", "#101020"],
+    accentColor: "#bdc3c7",
+    symbol: "quill",
+    mood: "dignified",
+  },
+  lira: {
+    name: "Lira Crenn",
+    title: "Alchemist",
+    description:
+      "A woman in her mid-thirties with ink-stained fingers and an expression that could curdle milk. She looks like she hasn't slept in weeks.",
+    gradient: ["#0a1a10", "#103020", "#184830", "#0d2018"],
+    accentColor: "#27ae60",
+    symbol: "flask",
+    mood: "fierce",
+  },
+  berta: {
+    name: "Berta Gruun",
+    title: "Innkeeper of the Salted Eel",
+    description:
+      "A round-faced woman with flour on her apron and a smile that's working a little too hard. She seems delighted to see you. Very delighted. Suspiciously delighted.",
+    gradient: ["#1a1008", "#2a1a10", "#3a2818", "#201408"],
+    accentColor: "#e67e22",
+    symbol: "mug",
+    mood: "anxious",
+  },
+  tam: {
+    name: "Old Tam",
+    title: "Fisherman",
+    description:
+      "An ancient man sitting at the end of the dock with a fishing rod and the energy of someone who has been here since before the dock was built.",
+    gradient: ["#0a0e12", "#141a20", "#1e2830", "#101418"],
+    accentColor: "#7f8c8d",
+    symbol: "fish",
+    mood: "ancient",
+  },
+  edric: {
+    name: "Edric Ashwick",
+    title: "A Young Man",
+    description:
+      "Barely twenty, with the same jawline as Maren. He looks like he's been caught doing something he shouldn't.",
+    gradient: ["#0a1428", "#142840", "#1e3c58", "#0d1c34"],
+    accentColor: "#2980b9",
+    symbol: "spear",
+    mood: "earnest",
+  },
+  thug: {
+    name: "Cloaked Figures",
+    title: "The Undertow",
+    description:
+      "Dark cloaks, spiral wave symbols. They are trying very hard to look intimidating. One of them is breathing loudly.",
+    gradient: ["#0d0d10", "#1a1a20", "#242430", "#141418"],
+    accentColor: "#95a5a6",
+    symbol: "wave",
+    mood: "hapless",
+  },
+  cultfanatic: {
+    name: "The Lieutenant",
+    title: "Undertow Leader",
+    description:
+      "A woman who stands perfectly still while the others fidget. Her eyes are calm. She is the only one in this room who is not afraid.",
+    gradient: ["#1a0808", "#2e1010", "#3d1818", "#200a0a"],
+    accentColor: "#c0392b",
+    symbol: "spiral",
+    mood: "dangerous",
+  },
+} satisfies Record<string, CharacterVisual>
+
+export const moods = {
+  default: {
+    id: "default",
+    name: "Default",
+    gradient: ["#0d1b2a", "#070b14", "#020204"],
+    particles: null,
+    particleColor: null,
+    accentColor: "#c9a227",
+  },
+  warm: {
+    id: "warm",
+    name: "Warm",
+    gradient: ["#1a0f08", "#2d1a0a", "#1a1008"],
+    particles: "sparks",
+    particleColor: "#e67e22",
+    accentColor: "#e67e22",
+  },
+  tense: {
+    id: "tense",
+    name: "Tense",
+    gradient: ["#0a0a14", "#151520", "#0d0d18"],
+    particles: "dust",
+    particleColor: "#7f8c8d",
+    accentColor: "#7f8c8d",
+  },
+  eerie: {
+    id: "eerie",
+    name: "Eerie",
+    gradient: ["#050a14", "#0a1424", "#081018"],
+    particles: "bioluminescence",
+    particleColor: "#1abc9c",
+    accentColor: "#1abc9c",
+  },
+  dread: {
+    id: "dread",
+    name: "Dread",
+    gradient: ["#020208", "#08081a", "#040410"],
+    particles: "void",
+    particleColor: "#6a3fa5",
+    accentColor: "#6a3fa5",
+  },
+  foreboding: {
+    id: "foreboding",
+    name: "Foreboding",
+    gradient: ["#050810", "#0a1018", "#080c14"],
+    particles: "fog",
+    particleColor: "#4a6fa5",
+    accentColor: "#4a6fa5",
+  },
+} satisfies Record<string, Mood>
+
+export const combatVisuals = {
+  "night-encounter": {
+    name: "Night Ambush",
+    subtitle: "The streets of Thornhaven",
+    description: "Dark cloaks. Spiral wave symbols. One of them sneezes.",
+    gradient: ["#08081a", "#101028", "#181838", "#0a0a1e"],
+    accentColor: "#e74c3c",
+    mood: "tense",
+  },
+  "saltworks-rescue": {
+    name: "Saltworks Rescue",
+    subtitle: "The basement of the Old Saltworks",
+    description: "Three thugs, a true believer, and a sandwich that started all this.",
+    gradient: ["#140a08", "#241810", "#342018", "#1a0e08"],
+    accentColor: "#e74c3c",
+    mood: "urgent",
+  },
+  "altar-chamber": {
+    name: "The Altar Chamber",
+    subtitle: "Beneath the cliffs of Thornhaven",
+    description: "The water doesn't move. The stone radiates cold. This is where it ends.",
+    gradient: ["#020208", "#08081a", "#0e0e28", "#040410"],
+    accentColor: "#8e44ad",
+    mood: "climactic",
+  },
+} satisfies Record<string, CombatVisual>
