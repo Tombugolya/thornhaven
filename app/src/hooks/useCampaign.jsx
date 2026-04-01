@@ -7,8 +7,6 @@ const CampaignContext = createContext(null);
 export function CampaignProvider({ children }) {
   const { lastMessage, showToPlayer, role } = useBroadcast();
   const [campaignId, setCampaignId] = useState(() => {
-    const urlCampaign = new URLSearchParams(window.location.search).get("campaign");
-    if (urlCampaign && campaigns.find((c) => c.id === urlCampaign)) return urlCampaign;
     if (campaigns.length === 1) return campaigns[0].id;
     try {
       return localStorage.getItem("dm:campaignId") || campaigns[0].id;

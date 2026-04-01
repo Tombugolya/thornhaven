@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { ChevronRight } from "lucide-react";
 import { useCampaign } from "../hooks/useCampaign";
-import { useBroadcast } from "../hooks/useBroadcast";
 import Particles from "./Particles";
 
 // Spiral wave + compass rose emblem for Thornhaven
@@ -158,7 +157,6 @@ function CampaignCard({ campaign, onEnter }) {
 
 export default function CampaignLanding({ onEnterCampaign }) {
   const { campaigns, selectCampaign } = useCampaign();
-  const { connected, playerCount } = useBroadcast();
   const [entered, setEntered] = useState(false);
 
   useEffect(() => {
@@ -209,20 +207,6 @@ export default function CampaignLanding({ onEnterCampaign }) {
             />
           ))}
         </div>
-      </div>
-
-      {/* Connection status indicator */}
-      <div className="absolute bottom-4 right-4 flex items-center gap-2 text-xs text-text-muted">
-        <div
-          className={`w-2 h-2 rounded-full ${
-            connected ? "bg-success-light" : "bg-danger"
-          }`}
-        />
-        {playerCount > 0
-          ? `${playerCount} player${playerCount > 1 ? "s" : ""}`
-          : connected
-          ? "Connected"
-          : "Offline"}
       </div>
     </div>
   );

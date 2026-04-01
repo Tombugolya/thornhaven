@@ -1,17 +1,19 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import {
   BookOpen,
   Users,
   Swords,
   Search,
   Map,
-  Monitor,
-  MonitorOff,
   Home,
   Wifi,
   WifiOff,
   X,
+  LogOut,
 } from "lucide-react";
+import { signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from "firebase/auth";
+import { ref, get } from "firebase/database";
+import { auth, db } from "./firebase";
 import { BroadcastProvider, useBroadcast } from "./hooks/useBroadcast";
 import { CampaignProvider, useCampaign } from "./hooks/useCampaign";
 import { usePersistedState } from "./hooks/usePersistedState";
@@ -21,10 +23,30 @@ import EncounterTracker from "./components/EncounterTracker";
 import ClueTracker from "./components/ClueTracker";
 import PlayerView from "./components/PlayerView";
 import CampaignLanding from "./components/CampaignLanding";
+import SessionPicker from "./components/SessionPicker";
 
-const params = new URLSearchParams(window.location.search);
-const isPlayerMode = params.has("player");
-const initialCampaign = params.get("campaign");
+// --- Hash routing ---
+function parseHash(hash) {
+  const match = hash.match(/^#\/(play|join|session)\/?(.*)?$/)
+  if (!match) return { route: null, code: null }
+  return { route: match[1], code: match[2] || null }
+}
+
+function useHashRoute() {
+  const [parsed, setParsed] = useState(() => parseHash(window.location.hash))
+
+  useEffect(() => {
+    const onHashChange = () => setParsed(parseHash(window.location.hash))
+    window.addEventListener("hashchange", onHashChange)
+    return () => window.removeEventListener("hashchange", onHashChange)
+  }, [])
+
+  const navigate = useCallback((path) => {
+    window.location.hash = path
+  }, [])
+
+  return { ...parsed, navigate }
+}
 
 const tabs = [
   { id: "story", label: "Story", icon: BookOpen },
@@ -33,14 +55,191 @@ const tabs = [
   { id: "clues", label: "Clues", icon: Search },
 ];
 
-function DmApp() {
+// --- Player Join Screen ---
+function PlayerJoin({ onJoin }) {
+  const [code, setCode] = useState("");
+  const [name, setName] = useState(() => {
+    try { return localStorage.getItem("thornhaven:playerName") || "" } catch { return "" }
+  });
+  const [error, setError] = useState(null);
+  const [checking, setChecking] = useState(false);
+
+  const handleJoin = async () => {
+    if (code.length < 4 || !name.trim()) return
+    setChecking(true)
+    setError(null)
+    try {
+      const snap = await get(ref(db, `rooms/${code}/meta`))
+      if (!snap.exists()) {
+        setError("Room not found. Check the code and try again.")
+        setChecking(false)
+        return
+      }
+      try { localStorage.setItem("thornhaven:playerName", name.trim()) } catch {}
+      onJoin(code, name.trim())
+    } catch {
+      setError("Could not connect. Try again.")
+      setChecking(false)
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-bg-deep flex items-center justify-center">
+      <div className="text-center space-y-6 w-full max-w-xs px-6">
+        <div className="space-y-2">
+          <Map className="w-10 h-10 text-gold mx-auto" />
+          <h1 className="font-[family-name:var(--font-display)] text-2xl text-gold">
+            Join Session
+          </h1>
+          <p className="text-sm text-text-muted">
+            Enter your name and the room code from your DM
+          </p>
+        </div>
+        <div className="space-y-3">
+          <input
+            type="text"
+            value={name}
+            onChange={(e) => setName(e.target.value.slice(0, 20))}
+            className="w-full text-center text-sm bg-bg-surface border border-gold/30 rounded-lg px-4 py-3 text-parchment focus:outline-none focus:border-gold placeholder:text-text-muted/50"
+            placeholder="Your name"
+            autoFocus
+          />
+          <input
+            type="text"
+            value={code}
+            onChange={(e) => {
+              setCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 5))
+              setError(null)
+            }}
+            onKeyDown={(e) => e.key === "Enter" && handleJoin()}
+            className="w-full text-center text-2xl font-mono tracking-[0.3em] bg-bg-surface border border-gold/30 rounded-lg px-4 py-3 text-gold focus:outline-none focus:border-gold placeholder:text-text-muted/50"
+            placeholder="XXXXX"
+            maxLength={5}
+          />
+        </div>
+        {error && (
+          <p className="text-danger text-xs">{error}</p>
+        )}
+        <button
+          onClick={handleJoin}
+          disabled={code.length < 4 || !name.trim() || checking}
+          className="w-full px-6 py-2.5 rounded-lg bg-gold/15 text-gold border border-gold/25 hover:bg-gold/25 disabled:opacity-30 cursor-pointer transition-colors text-sm font-medium"
+        >
+          {checking ? "Checking..." : "Join"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// --- Auth Gate ---
+function AuthGate({ children }) {
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [authorized, setAuthorized] = useState(false);
+  const [checkingAuth, setCheckingAuth] = useState(false);
+
+  useEffect(() => {
+    return onAuthStateChanged(auth, async (u) => {
+      setUser(u);
+      if (u) {
+        setCheckingAuth(true);
+        const snap = await get(ref(db, `allowedDMs/${u.uid}`));
+        setAuthorized(snap.exists());
+        setCheckingAuth(false);
+      } else {
+        setAuthorized(false);
+      }
+      setLoading(false);
+    });
+  }, []);
+
+  const handleSignIn = async () => {
+    try {
+      await signInWithPopup(auth, new GoogleAuthProvider());
+    } catch (err) {
+      console.error("Sign-in failed:", err);
+    }
+  };
+
+  const handleSignOut = () => signOut(auth);
+
+  if (loading || checkingAuth) {
+    return (
+      <div className="fixed inset-0 bg-bg-deep flex items-center justify-center">
+        <div className="text-text-muted text-sm">Loading...</div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="fixed inset-0 bg-bg-deep flex items-center justify-center">
+        <div className="text-center space-y-6">
+          <div className="space-y-2">
+            <Map className="w-10 h-10 text-gold mx-auto" />
+            <h1 className="font-[family-name:var(--font-display)] text-2xl text-gold">
+              Thornhaven
+            </h1>
+            <p className="text-sm text-text-muted">
+              Sign in to access the DM Companion
+            </p>
+          </div>
+          <button
+            onClick={handleSignIn}
+            className="px-6 py-3 rounded-lg bg-gold/15 text-gold border border-gold/25 hover:bg-gold/25 cursor-pointer transition-colors flex items-center gap-2 mx-auto"
+          >
+            Sign in with Google
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!authorized) {
+    return (
+      <div className="fixed inset-0 bg-bg-deep flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <h1 className="font-[family-name:var(--font-display)] text-xl text-gold">
+            Access Denied
+          </h1>
+          <p className="text-sm text-text-muted max-w-xs">
+            Your account ({user.email}) is not authorized as a DM.
+          </p>
+          <p className="text-xs text-text-muted font-mono bg-bg-surface/60 rounded px-3 py-2 border border-bg-elevated/50">
+            UID: {user.uid}
+          </p>
+          <p className="text-xs text-text-muted">
+            Share this UID with an admin to get access.
+          </p>
+          <button
+            onClick={handleSignOut}
+            className="px-4 py-2 rounded-lg text-xs text-text-muted hover:text-parchment border border-bg-elevated/50 hover:bg-bg-surface/60 cursor-pointer transition-colors"
+          >
+            Sign out
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return children({ user, onSignOut: handleSignOut });
+}
+
+// --- DM App ---
+function DmApp({ user, onSignOut, sessionRoomCode, navigate }) {
   const { campaign } = useCampaign();
-  const [showLanding, setShowLanding] = useState(!initialCampaign);
+  const [view, setView] = useState(() => {
+    if (sessionRoomCode) return "session"
+    return "landing"
+  });
+  const [selectedCampaignId, setSelectedCampaignId] = useState(null);
   const [activeTab, setActiveTab] = usePersistedState(
     `dm:${campaign.id}:activeTab`,
     "story"
   );
-  const { connected, playerCount, clearPlayer, showToPlayer, lastMessage } = useBroadcast();
+  const { connected, playerCount, players, clearPlayer, showToPlayer, lastMessage, roomCode } =
+    useBroadcast();
   const [activeMood, setActiveMood] = useState("default");
   const [puzzleToast, setPuzzleToast] = useState(false);
   const moodEntries = campaign.moods ? Object.values(campaign.moods) : [];
@@ -55,29 +254,59 @@ function DmApp() {
 
   const playerUrl = useMemo(() => {
     const loc = window.location;
-    return `${loc.protocol}//${loc.host}/?player`;
-  }, []);
+    return `${loc.protocol}//${loc.host}${loc.pathname}#/play/${roomCode}`;
+  }, [roomCode]);
+
+  const playerNames = Object.values(players).map(p => p.name).filter(Boolean);
 
   const enterCampaign = (campaignId) => {
-    const url = new URL(window.location);
-    url.searchParams.set("campaign", campaignId || campaign.id);
-    window.history.pushState({}, "", url);
-    setShowLanding(false);
+    setSelectedCampaignId(campaignId);
+    setView("sessions");
+  };
+
+  const selectSession = (existingRoomCode) => {
+    if (existingRoomCode) {
+      navigate(`#/session/${existingRoomCode}`);
+    } else {
+      // New session — navigate, the BroadcastProvider will generate a room code
+      // We need to generate one here so we can navigate to it
+      const ALPHABET = 'ABCDEFGHJKMNPQRTUVWXY2346789'
+      const newCode = Array.from({ length: 5 }, () =>
+        ALPHABET[Math.floor(Math.random() * ALPHABET.length)]
+      ).join('')
+      navigate(`#/session/${newCode}`);
+    }
+    // Page will re-render with new hash → new BroadcastProvider with roomCode
   };
 
   const goToLanding = () => {
-    const url = new URL(window.location);
-    url.searchParams.delete("campaign");
-    window.history.pushState({}, "", url);
-    setShowLanding(true);
+    navigate("")
+    setView("landing")
+    setSelectedCampaignId(null)
   };
 
-  if (showLanding) {
+  const goToSessions = () => {
+    setView("sessions")
+  };
+
+  // Landing view
+  if (view === "landing") {
+    return <CampaignLanding onEnterCampaign={enterCampaign} />;
+  }
+
+  // Session picker view
+  if (view === "sessions" && selectedCampaignId) {
     return (
-      <CampaignLanding onEnterCampaign={enterCampaign} />
+      <SessionPicker
+        campaignId={selectedCampaignId}
+        dmUid={user.uid}
+        onSelectSession={selectSession}
+        onBack={goToLanding}
+      />
     );
   }
 
+  // Active session view
   return (
     <div className="min-h-screen flex flex-col">
       {/* Header */}
@@ -102,10 +331,24 @@ function DmApp() {
             </div>
           </div>
 
-          {/* Player connection status + link */}
           <div className="flex items-center gap-3">
+            {/* Room code */}
+            <div
+              className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gold/10 border border-gold/20 cursor-pointer"
+              onClick={() => navigator.clipboard.writeText(roomCode)}
+              title="Click to copy room code"
+            >
+              <span className="text-xs text-text-muted">Room:</span>
+              <span className="font-mono text-sm font-bold text-gold tracking-widest">
+                {roomCode}
+              </span>
+            </div>
+
             {playerCount > 0 && (
-              <div className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg bg-bg-surface/60 border border-bg-elevated/50" title="Mood">
+              <div
+                className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg bg-bg-surface/60 border border-bg-elevated/50"
+                title="Mood"
+              >
                 {moodEntries.map((m) => (
                   <button
                     key={m.id}
@@ -117,9 +360,10 @@ function DmApp() {
                     style={{
                       background: m.gradient[0],
                       border: `2px solid ${m.accentColor}`,
-                      boxShadow: activeMood === m.id
-                        ? `0 0 0 2px ${m.accentColor}60, 0 0 8px ${m.accentColor}40`
-                        : "none",
+                      boxShadow:
+                        activeMood === m.id
+                          ? `0 0 0 2px ${m.accentColor}60, 0 0 8px ${m.accentColor}40`
+                          : "none",
                       opacity: activeMood === m.id ? 1 : 0.6,
                     }}
                     title={m.name}
@@ -143,7 +387,9 @@ function DmApp() {
               )}
               <span className="text-xs text-text-muted">
                 {playerCount > 0 ? (
-                  <span className="text-success-light">{playerCount} player{playerCount > 1 ? "s" : ""} connected</span>
+                  <span className="text-success-light" title={playerNames.join(", ")}>
+                    {playerNames.length > 0 ? playerNames.join(", ") : `${playerCount} player${playerCount > 1 ? "s" : ""}`}
+                  </span>
                 ) : (
                   "No players"
                 )}
@@ -156,9 +402,15 @@ function DmApp() {
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs bg-gold/10 border border-gold/20 text-gold hover:bg-gold/15 transition-colors"
               title="Open player view in new tab"
             >
-              <Monitor className="w-3.5 h-3.5" />
               Player View
             </a>
+            <button
+              onClick={onSignOut}
+              className="p-1.5 rounded-lg text-text-muted hover:text-gold hover:bg-gold/10 transition-colors cursor-pointer"
+              title={`Sign out (${user.email})`}
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
           </div>
         </div>
       </header>
@@ -218,12 +470,83 @@ function DmApp() {
   );
 }
 
+// --- Root App ---
 export default function App() {
+  const { route, code, navigate } = useHashRoute();
+
+  // Player join screen
+  if (route === "join" || (route === "play" && !code)) {
+    return (
+      <PlayerJoin
+        onJoin={(roomCode, name) => {
+          try { localStorage.setItem("thornhaven:playerName", name) } catch {}
+          navigate(`#/play/${roomCode}`)
+        }}
+      />
+    );
+  }
+
+  // Player mode
+  if (route === "play" && code) {
+    const playerName = (() => {
+      try { return localStorage.getItem("thornhaven:playerName") || "" } catch { return "" }
+    })();
+
+    // If no name, redirect to join with room code pre-filled
+    if (!playerName) {
+      return (
+        <PlayerJoin
+          onJoin={(_, name) => {
+            try { localStorage.setItem("thornhaven:playerName", name) } catch {}
+            // Force re-render by re-navigating
+            window.location.hash = `#/play/${code}`
+            window.location.reload()
+          }}
+        />
+      );
+    }
+
+    return (
+      <BroadcastProvider role="player" roomCode={code} playerName={playerName}>
+        <CampaignProvider>
+          <PlayerView />
+        </CampaignProvider>
+      </BroadcastProvider>
+    );
+  }
+
+  // DM mode
   return (
-    <BroadcastProvider role={isPlayerMode ? "player" : "dm"}>
-      <CampaignProvider>
-        {isPlayerMode ? <PlayerView /> : <DmApp />}
-      </CampaignProvider>
-    </BroadcastProvider>
+    <AuthGate>
+      {({ user, onSignOut }) => {
+        // DM with active session
+        if (route === "session" && code) {
+          return (
+            <BroadcastProvider
+              key={`session-${code}`}
+              role="dm"
+              roomCode={code}
+              dmUid={user.uid}
+              campaignId={(() => {
+                try { return localStorage.getItem("dm:campaignId") || "thornhaven" } catch { return "thornhaven" }
+              })()}
+            >
+              <CampaignProvider>
+                <DmApp user={user} onSignOut={onSignOut} sessionRoomCode={code} navigate={navigate} />
+              </CampaignProvider>
+            </BroadcastProvider>
+          );
+        }
+
+        // DM landing / session picker
+        return (
+          <BroadcastProvider key="landing" role="dm" dmUid={user.uid} campaignId="thornhaven">
+            <CampaignProvider>
+              <DmApp user={user} onSignOut={onSignOut} sessionRoomCode={null} navigate={navigate} />
+            </CampaignProvider>
+          </BroadcastProvider>
+        );
+      }}
+    </AuthGate>
   );
 }

@@ -10,7 +10,7 @@ let floatingIdCounter = 0
 
 export default function PlayerView() {
   const { campaign } = useCampaign()
-  const { lastMessage, connected, showToPlayer } = useBroadcast()
+  const { lastMessage, connected, showToPlayer, sessionState } = useBroadcast()
   const { location: locationVisuals, character: characterVisuals, combat: combatVisuals } = campaign.visuals
   const moods = campaign.moods
   const battleMaps = campaign.battleMaps
@@ -28,6 +28,46 @@ export default function PlayerView() {
   const [activeTurnToken, setActiveTurnToken] = useState(null)
   const [floatingNumbers, setFloatingNumbers] = useState([])
   const [dyingTokens, setDyingTokens] = useState(new Set())
+  const recoveredRef = useRef(false)
+
+  // Recover state from Firebase on mount (reconnection support)
+  useEffect(() => {
+    if (!sessionState || recoveredRef.current) return
+    recoveredRef.current = true
+
+    if (sessionState.mood) setMood(sessionState.mood)
+    setCampaignActive(true)
+
+    // Recover combat state
+    if (sessionState.revealedTokens) {
+      setRevealedTokens(new Set(Object.keys(sessionState.revealedTokens)))
+    }
+    if (sessionState.tokenPositions) {
+      setTokenPositions(sessionState.tokenPositions)
+    }
+    if (sessionState.tokenConditions) {
+      setTokenConditions(sessionState.tokenConditions)
+    }
+    if (sessionState.activeTurnToken) {
+      setActiveTurnToken(sessionState.activeTurnToken)
+    }
+
+    // Recover current display
+    if (sessionState.currentMap) {
+      const map = battleMaps[sessionState.currentMap]
+      if (map) setActiveMap(map)
+    } else if (sessionState.currentDisplay) {
+      const { type, id } = sessionState.currentDisplay
+      if (type === "handout") {
+        const handout = campaign.handouts?.[id]
+        if (handout) setActiveHandout(handout)
+      } else {
+        const visuals = type === "location" ? locationVisuals : type === "character" ? characterVisuals : combatVisuals
+        const visual = visuals[id]
+        if (visual) setScene({ ...visual, displayType: type })
+      }
+    }
+  }, [sessionState])
 
   useEffect(() => {
     if (!lastMessage) return
