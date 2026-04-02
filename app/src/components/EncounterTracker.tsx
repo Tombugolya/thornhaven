@@ -18,6 +18,7 @@ import {
   Brain,
   CircleSlash,
   Ghost,
+  Dices,
 } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 import { useCampaign } from "../hooks/useCampaign"
@@ -125,10 +126,105 @@ interface CombatantRowProps {
   onHpChange: (delta: number) => void
   onInitiativeChange: (val: number) => void
   onConditionToggle: (condition: string) => void
+  onDeathSaveUpdate: (saves: { successes: number; failures: number } | undefined) => void
+  onDeathSaveRoll: () => void
   isActiveTurn: boolean
   isRevealed?: boolean
   onRevealToggle?: () => void
   hasToken?: boolean
+}
+
+function DeathSaveTracker({
+  combatant,
+  onUpdate,
+  onRoll,
+}: {
+  combatant: Combatant
+  onUpdate: (saves: { successes: number; failures: number } | undefined) => void
+  onRoll: () => void
+}) {
+  const saves = combatant.deathSaves ?? { successes: 0, failures: 0 }
+  const stabilized = saves.successes >= 3
+  const fallen = saves.failures >= 3
+
+  const toggleSuccess = (index: number) => {
+    if (stabilized || fallen) return
+    const newSuccesses = index < saves.successes ? index : index + 1
+    onUpdate({ successes: newSuccesses, failures: saves.failures })
+  }
+
+  const toggleFailure = (index: number) => {
+    if (stabilized || fallen) return
+    const newFailures = index < saves.failures ? index : index + 1
+    onUpdate({ successes: saves.successes, failures: newFailures })
+  }
+
+  return (
+    <div className="mt-2 space-y-2">
+      {stabilized ? (
+        <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-success/15 border border-success/30">
+          <Heart className="w-4 h-4 text-success-light" />
+          <span className="text-xs font-semibold text-success-light tracking-wide">
+            Stabilized!
+          </span>
+        </div>
+      ) : fallen ? (
+        <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-danger/15 border border-danger/30">
+          <Skull className="w-4 h-4 text-danger-light" />
+          <span className="text-xs font-semibold text-danger-light tracking-wide">Fallen...</span>
+        </div>
+      ) : (
+        <>
+          <div className="flex items-center gap-4">
+            {/* Successes */}
+            <div className="flex items-center gap-1.5">
+              <span className="text-[10px] text-success-light uppercase tracking-wider font-medium">
+                Save
+              </span>
+              {Array.from({ length: 3 }).map((_, i) => (
+                <button
+                  key={`s-${i}`}
+                  onClick={() => toggleSuccess(i)}
+                  className={`w-4 h-4 rounded-full border-2 transition-all cursor-pointer ${
+                    i < saves.successes
+                      ? "bg-success border-success-light shadow-[0_0_6px_rgba(46,204,113,0.5)]"
+                      : "bg-transparent border-success/30 hover:border-success/60"
+                  }`}
+                  title={`Success ${i + 1}`}
+                />
+              ))}
+            </div>
+            {/* Failures */}
+            <div className="flex items-center gap-1.5">
+              <span className="text-[10px] text-danger-light uppercase tracking-wider font-medium">
+                Fail
+              </span>
+              {Array.from({ length: 3 }).map((_, i) => (
+                <button
+                  key={`f-${i}`}
+                  onClick={() => toggleFailure(i)}
+                  className={`w-4 h-4 rounded-full border-2 transition-all cursor-pointer ${
+                    i < saves.failures
+                      ? "bg-danger border-danger-light shadow-[0_0_6px_rgba(231,76,60,0.5)]"
+                      : "bg-transparent border-danger/30 hover:border-danger/60"
+                  }`}
+                  title={`Failure ${i + 1}`}
+                />
+              ))}
+            </div>
+          </div>
+          {/* Roll d20 button */}
+          <button
+            onClick={onRoll}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-gold/15 text-gold border border-gold/25 hover:bg-gold/25 transition-colors cursor-pointer"
+          >
+            <Dices className="w-3.5 h-3.5" />
+            Roll Death Save
+          </button>
+        </>
+      )}
+    </div>
+  )
 }
 
 function CombatantRow({
@@ -136,6 +232,8 @@ function CombatantRow({
   onHpChange,
   onInitiativeChange,
   onConditionToggle,
+  onDeathSaveUpdate,
+  onDeathSaveRoll,
   isActiveTurn,
   isRevealed,
   onRevealToggle,
@@ -143,6 +241,7 @@ function CombatantRow({
 }: CombatantRowProps) {
   const [damageInput, setDamageInput] = useState("")
   const isDead = combatant.hp <= 0
+  const showDeathSaves = combatant.isPC && isDead
 
   const applyDamage = () => {
     const val = parseInt(damageInput)
@@ -164,7 +263,9 @@ function CombatantRow({
     <div
       className={`bg-bg-surface/60 border rounded-xl p-4 transition-all duration-200 ${
         isDead
-          ? "border-danger/30 opacity-50"
+          ? showDeathSaves
+            ? "border-danger/40 shadow-[inset_0_0_20px_rgba(192,57,43,0.1)]"
+            : "border-danger/30 opacity-50"
           : isActiveTurn
             ? "border-gold/40 shadow-[inset_4px_0_0_#c9a227] scale-[1.01]"
             : combatant.isPC
@@ -264,8 +365,16 @@ function CombatantRow({
         </div>
       </div>
 
-      {/* HP Bar */}
-      <HPBar current={combatant.hp} max={combatant.maxHp} />
+      {/* HP Bar or Death Saves */}
+      {showDeathSaves ? (
+        <DeathSaveTracker
+          combatant={combatant}
+          onUpdate={onDeathSaveUpdate}
+          onRoll={onDeathSaveRoll}
+        />
+      ) : (
+        <HPBar current={combatant.hp} max={combatant.maxHp} />
+      )}
 
       {/* Condition Toggles */}
       <ConditionToggles
@@ -414,7 +523,26 @@ function EncounterPanel({ encounter }: { encounter: Encounter }) {
       const oldHp = combatant.hp
       const newHp = Math.max(0, Math.min(combatant.maxHp, oldHp + delta))
 
-      const newCombatants = combatants.map((c) => (c.id === id ? { ...c, hp: newHp } : c))
+      // D&D rule: taking damage at 0 HP causes auto death save failure
+      let updatedDeathSaves = combatant.deathSaves
+      if (combatant.isPC && oldHp <= 0 && delta < 0 && combatant.deathSaves) {
+        const newFailures = Math.min(3, combatant.deathSaves.failures + 1)
+        updatedDeathSaves = { ...combatant.deathSaves, failures: newFailures }
+      }
+
+      // If healed above 0, clear death saves
+      if (combatant.isPC && newHp > 0 && oldHp <= 0) {
+        updatedDeathSaves = undefined
+      }
+
+      // If dropped to 0, initialize death saves
+      if (combatant.isPC && oldHp > 0 && newHp <= 0) {
+        updatedDeathSaves = { successes: 0, failures: 0 }
+      }
+
+      const newCombatants = combatants.map((c) =>
+        c.id === id ? { ...c, hp: newHp, deathSaves: updatedDeathSaves } : c,
+      )
       syncEncounter({ combatants: newCombatants })
 
       if (playerCount > 0 && mapExists) {
@@ -465,6 +593,110 @@ function EncounterPanel({ encounter }: { encounter: Encounter }) {
 
       if (playerCount > 0 && mapExists) {
         showToPlayer("conditions", null, { tokenId: toTokenId(id), conditions: newConditions })
+      }
+    },
+    [combatants, syncEncounter, playerCount, mapExists, showToPlayer, toTokenId],
+  )
+
+  const updateDeathSaves = useCallback(
+    (id: string, saves: { successes: number; failures: number } | undefined) => {
+      const combatant = combatants.find((c) => c.id === id)
+      if (!combatant) return
+
+      // If stabilized (3 successes), set HP to 1 and clear death saves
+      if (saves && saves.successes >= 3) {
+        const newCombatants = combatants.map((c) =>
+          c.id === id ? { ...c, hp: 1, deathSaves: undefined } : c,
+        )
+        syncEncounter({ combatants: newCombatants })
+        if (playerCount > 0 && mapExists) {
+          showToPlayer("revive", null, { tokenId: toTokenId(id) })
+        }
+        return
+      }
+
+      const newCombatants = combatants.map((c) =>
+        c.id === id ? { ...c, deathSaves: saves } : c,
+      )
+      syncEncounter({ combatants: newCombatants })
+    },
+    [combatants, syncEncounter, playerCount, mapExists, showToPlayer, toTokenId],
+  )
+
+  const rollDeathSave = useCallback(
+    (id: string) => {
+      const combatant = combatants.find((c) => c.id === id)
+      if (!combatant) return
+
+      const saves = combatant.deathSaves ?? { successes: 0, failures: 0 }
+      const roll = Math.floor(Math.random() * 20) + 1
+
+      let newSuccesses = saves.successes
+      let newFailures = saves.failures
+
+      if (roll === 20) {
+        // Natural 20: regain 1 HP immediately
+        const newCombatants = combatants.map((c) =>
+          c.id === id ? { ...c, hp: 1, deathSaves: undefined } : c,
+        )
+        syncEncounter({ combatants: newCombatants })
+        if (playerCount > 0 && mapExists) {
+          showToPlayer("revive", null, { tokenId: toTokenId(id) })
+          showToPlayer("deathSave", null, {
+            tokenId: toTokenId(id),
+            roll,
+            success: true,
+            successes: 3,
+            failures: saves.failures,
+          })
+        }
+        return
+      }
+
+      if (roll === 1) {
+        // Natural 1: counts as 2 failures
+        newFailures = Math.min(3, newFailures + 2)
+      } else if (roll >= 10) {
+        newSuccesses = Math.min(3, newSuccesses + 1)
+      } else {
+        newFailures = Math.min(3, newFailures + 1)
+      }
+
+      const success = roll >= 10
+      const newSaves = { successes: newSuccesses, failures: newFailures }
+
+      // If stabilized (3 successes), set HP to 1 and clear death saves
+      if (newSuccesses >= 3) {
+        const newCombatants = combatants.map((c) =>
+          c.id === id ? { ...c, hp: 1, deathSaves: undefined } : c,
+        )
+        syncEncounter({ combatants: newCombatants })
+        if (playerCount > 0 && mapExists) {
+          showToPlayer("revive", null, { tokenId: toTokenId(id) })
+          showToPlayer("deathSave", null, {
+            tokenId: toTokenId(id),
+            roll,
+            success,
+            successes: newSuccesses,
+            failures: newFailures,
+          })
+        }
+        return
+      }
+
+      const newCombatants = combatants.map((c) =>
+        c.id === id ? { ...c, deathSaves: newSaves } : c,
+      )
+      syncEncounter({ combatants: newCombatants })
+
+      if (playerCount > 0 && mapExists) {
+        showToPlayer("deathSave", null, {
+          tokenId: toTokenId(id),
+          roll,
+          success,
+          successes: newSuccesses,
+          failures: newFailures,
+        })
       }
     },
     [combatants, syncEncounter, playerCount, mapExists, showToPlayer, toTokenId],
@@ -711,6 +943,8 @@ function EncounterPanel({ encounter }: { encounter: Encounter }) {
                   onHpChange={(delta) => updateHp(c.id, delta)}
                   onInitiativeChange={(val) => updateInitiative(c.id, val)}
                   onConditionToggle={(condition) => toggleCondition(c.id, condition)}
+                  onDeathSaveUpdate={(saves) => updateDeathSaves(c.id, saves)}
+                  onDeathSaveRoll={() => rollDeathSave(c.id)}
                   isActiveTurn={activeTurnId === c.id}
                   isRevealed={revealedTokenIds.includes(tokenId)}
                   onRevealToggle={() => handleRevealToggle(c.id)}

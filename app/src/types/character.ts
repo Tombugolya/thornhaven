@@ -79,6 +79,20 @@ export interface SrdLevelDetail {
   spellcasting?: Record<string, number>
 }
 
+export interface SrdSpellDetail {
+  index: string
+  name: string
+  level: number
+  school: SrdReference
+  casting_time: string
+  range: string
+  components: string[]
+  duration: string
+  desc: string[]
+  higher_level?: string[]
+  classes: SrdReference[]
+}
+
 export interface SrdSkill {
   index: string
   name: string
@@ -242,6 +256,28 @@ export const POINT_BUY_COSTS: Record<number, number> = {
 
 export const POINT_BUY_TOTAL = 27
 
+// --- Equipment ---
+
+export interface EquipmentItem {
+  name: string
+  quantity: number
+}
+
+export const STARTING_GOLD: Record<string, string> = {
+  barbarian: "2d4 x 10 gp",
+  bard: "5d4 x 10 gp",
+  cleric: "5d4 x 10 gp",
+  druid: "2d4 x 10 gp",
+  fighter: "5d4 x 10 gp",
+  monk: "5d4 gp",
+  paladin: "5d4 x 10 gp",
+  ranger: "5d4 x 10 gp",
+  rogue: "4d4 x 10 gp",
+  sorcerer: "3d4 x 10 gp",
+  warlock: "4d4 x 10 gp",
+  wizard: "4d4 x 10 gp",
+}
+
 // --- Player Character (persisted to Firebase) ---
 
 export interface AbilityScores {
@@ -297,8 +333,17 @@ export interface PlayerCharacter {
   racialTraits: string[]
   classFeatures: string[]
 
+  // Equipment & Gold
+  equipment: EquipmentItem[]
+  gold: number
+
   // Spellcasting
   spellcastingAbility?: string
+  cantrips: string[]
+  spells: string[]
+
+  // Portrait
+  portraitUrl?: string
 
   // Meta
   notes: string
@@ -326,24 +371,36 @@ export interface WizardState {
   class?: SrdClass
   subclass?: SrdReference
   selectedSkills: string[]
+  selectedCantrips: string[]
+  selectedSpells: string[]
   // Step 3: Ability Scores
   method: "standard-array" | "point-buy" | "manual"
   baseScores: AbilityScores
   // Step 4: Details
+  level: number
   name: string
   background: string
   alignment: string
   notes: string
+  portraitDataUrl?: string
+  // Equipment
+  equipmentChoices: number[]
+  startingGold: number
 }
 
 export const INITIAL_WIZARD_STATE: WizardState = {
   step: 0,
   subclass: undefined,
   selectedSkills: [],
+  selectedCantrips: [],
+  selectedSpells: [],
   method: "standard-array",
   baseScores: { str: 0, dex: 0, con: 0, int: 0, wis: 0, cha: 0 },
+  level: 1,
   name: "",
   background: "",
   alignment: "",
   notes: "",
+  equipmentChoices: [],
+  startingGold: 0,
 }

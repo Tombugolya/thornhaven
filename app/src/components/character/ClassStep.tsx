@@ -9,6 +9,7 @@ import {
 import { ABILITY_LABELS } from "../../types/character"
 import type { AbilityKey } from "../../types/character"
 import Tooltip from "./Tooltip"
+import SpellSelection from "./SpellSelection"
 
 interface ClassStepProps {
   classes: SrdReference[]
@@ -244,7 +245,7 @@ export default function ClassStep({ classes, skills, state, onChange }: ClassSte
       setLoadingClass(ref.index)
       try {
         const cls = await fetchClass(ref.index)
-        onChange({ class: cls, selectedSkills: [] })
+        onChange({ class: cls, selectedSkills: [], selectedCantrips: [], selectedSpells: [] })
       } finally {
         setLoadingClass(null)
       }
@@ -434,6 +435,15 @@ export default function ClassStep({ classes, skills, state, onChange }: ClassSte
                 </span>
               </p>
             </div>
+          )}
+
+          {/* Spell selection for casters */}
+          {classDetail.spellcasting && (
+            <SpellSelection
+              classIndex={classDetail.index}
+              state={state}
+              onChange={onChange}
+            />
           )}
 
           {/* Skill proficiency selection */}

@@ -1,12 +1,13 @@
 import { useMemo } from "react"
 import type { WizardState } from "../../types/character"
-import { ABILITY_KEYS, BACKGROUNDS } from "../../types/character"
+import { ABILITY_KEYS, BACKGROUNDS, STARTING_GOLD } from "../../types/character"
+import type { EquipmentItem } from "../../types/character"
 import {
   computeRacialBonuses,
   applyBonuses,
   formatModifier,
   abilityModifier,
-  hpAtLevel1,
+  hpAtLevel,
   unarmoredAC,
   proficiencyBonus,
   classSavingThrows,
@@ -36,12 +37,12 @@ export default function ReviewStep({ state }: ReviewStepProps) {
   const derivedStats = useMemo(() => {
     if (!cls) return null
     return {
-      hp: hpAtLevel1(cls.hit_die, finalScores.con),
+      hp: hpAtLevel(cls.hit_die, finalScores.con, state.level),
       ac: unarmoredAC(finalScores.dex),
-      profBonus: proficiencyBonus(1),
+      profBonus: proficiencyBonus(state.level),
       speed: race?.speed ?? 30,
     }
-  }, [cls, finalScores, race])
+  }, [cls, finalScores, race, state.level])
 
   const savingThrows = useMemo(() => {
     if (!cls) return []
@@ -86,6 +87,32 @@ export default function ReviewStep({ state }: ReviewStepProps) {
     }
     return traits
   }, [race, subrace])
+
+  const reviewEquipment = useMemo((): EquipmentItem[] => {
+    if (!cls) return []
+    const items: EquipmentItem[] = cls.starting_equipment.map((e) => ({
+      name: e.equipment.name,
+      quantity: e.quantity,
+    }))
+    for (let i = 0; i < cls.starting_equipment_options.length; i++) {
+      const choice = cls.starting_equipment_options[i]
+      const selected = state.equipmentChoices[i]
+      if (selected !== undefined && choice.from.options[selected]) {
+        const opt = choice.from.options[selected]
+        if (opt.option_type === "counted_reference" && opt.of) {
+          items.push({ name: opt.of.name, quantity: opt.count ?? 1 })
+        } else if (opt.item) {
+          items.push({ name: opt.item.name, quantity: 1 })
+        }
+      }
+    }
+    return items
+  }, [cls, state.equipmentChoices])
+
+  const startingGoldFormula = useMemo(() => {
+    if (!cls) return null
+    return STARTING_GOLD[cls.index] ?? null
+  }, [cls])
 
   if (!race || !cls || !derivedStats) {
     return (
@@ -180,22 +207,33 @@ export default function ReviewStep({ state }: ReviewStepProps) {
 
         {/* Header */}
         <div className="relative px-6 py-6 border-b border-gold/15">
-          <div className="flex items-baseline justify-between">
-            <div>
-              <h3
-                className="font-[family-name:var(--font-display)] text-gold text-3xl tracking-wide"
-                style={{ textShadow: "0 0 20px rgba(201,162,39,0.2), 0 2px 4px rgba(0,0,0,0.3)" }}
-              >
-                {state.name || "Unnamed Hero"}
-              </h3>
-              <p className="text-parchment text-sm mt-1">
-                {race.name}
-                {subrace ? ` (${subrace.name})` : ""} {cls.name}
-              </p>
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex items-center gap-4">
+              {state.portraitDataUrl && (
+                <div className="w-16 h-16 rounded-full border-2 border-gold/30 overflow-hidden shrink-0">
+                  <img
+                    src={state.portraitDataUrl}
+                    alt="Portrait"
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              )}
+              <div>
+                <h3
+                  className="font-[family-name:var(--font-display)] text-gold text-3xl tracking-wide"
+                  style={{ textShadow: "0 0 20px rgba(201,162,39,0.2), 0 2px 4px rgba(0,0,0,0.3)" }}
+                >
+                  {state.name || "Unnamed Hero"}
+                </h3>
+                <p className="text-parchment text-sm mt-1">
+                  {race.name}
+                  {subrace ? ` (${subrace.name})` : ""} {cls.name}
+                </p>
+              </div>
             </div>
             <div className="text-right">
               <span className="px-3 py-1.5 rounded-lg bg-gold/10 border border-gold/20 text-gold text-xs font-medium font-[family-name:var(--font-display)] tracking-wider">
-                Level 1
+                Level {state.level}
               </span>
             </div>
           </div>
@@ -418,6 +456,106 @@ export default function ReviewStep({ state }: ReviewStepProps) {
             )}
           </div>
         </div>
+
+        {/* Spells */}
+        {(state.selectedCantrips.length > 0 || state.selectedSpells.length > 0) && (
+          <div className="px-6 py-4 border-b border-gold/15">
+            <h4 className="text-parchment text-xs uppercase tracking-wider mb-3">Spells</h4>
+            {state.selectedCantrips.length > 0 && (
+              <div className="mb-3">
+                <span className="text-text-muted text-[10px] uppercase tracking-wider">
+                  Cantrips
+                </span>
+                <div className="flex flex-wrap gap-2 mt-1">
+                  {state.selectedCantrips.map((index) => (
+                    <span
+                      key={index}
+                      className="px-2.5 py-1 rounded-lg bg-gold/10 border border-gold/20 text-gold text-xs font-medium capitalize"
+                    >
+                      {index.replace(/-/g, " ")}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+            {state.selectedSpells.length > 0 && (
+              <div>
+                <span className="text-text-muted text-[10px] uppercase tracking-wider">
+                  Level 1 Spells
+                </span>
+                <div className="flex flex-wrap gap-2 mt-1">
+                  {state.selectedSpells.map((index) => (
+                    <span
+                      key={index}
+                      className="px-2.5 py-1 rounded-lg bg-gold/10 border border-gold/20 text-gold text-xs font-medium capitalize"
+                    >
+                      {index.replace(/-/g, " ")}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Equipment & Gold */}
+        {(reviewEquipment.length > 0 || state.startingGold > 0) && (
+          <div className="px-6 py-4 border-b border-gold/15">
+            <h4 className="text-parchment text-xs uppercase tracking-wider mb-3 flex items-center gap-2">
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="text-gold/70"
+              >
+                <path d="M4 10h16v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V10z" />
+                <path d="M8 10V6a4 4 0 0 1 8 0v4" />
+                <path d="M10 14h4" />
+              </svg>
+              Equipment &amp; Gold
+            </h4>
+            {reviewEquipment.length > 0 && (
+              <div className="flex flex-wrap gap-2 mb-3">
+                {reviewEquipment.map((item, idx) => (
+                  <span
+                    key={idx}
+                    className="px-2.5 py-1 rounded-lg bg-gold/10 border border-gold/20 text-gold text-xs font-medium"
+                  >
+                    {item.quantity > 1 ? `${item.quantity}x ` : ""}
+                    {item.name}
+                  </span>
+                ))}
+              </div>
+            )}
+            <div className="flex items-center gap-2">
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="text-gold"
+              >
+                <circle cx="12" cy="12" r="10" />
+                <path d="M12 6v12M8 10h8M8 14h8" />
+              </svg>
+              <span className="text-gold text-sm font-mono font-bold">{state.startingGold} gp</span>
+              {startingGoldFormula && (
+                <span className="text-text-muted text-[10px]">
+                  (roll: {startingGoldFormula})
+                </span>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Languages */}
         {languages.length > 0 && (

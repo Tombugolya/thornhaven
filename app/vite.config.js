@@ -1,3 +1,4 @@
+/// <reference types="vitest" />
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
@@ -10,6 +11,7 @@ function wsRelayPlugin() {
       const wss = new WebSocketServer({ noServer: true })
       const clients = new Map() // ws -> role
 
+      if (!server.httpServer) return
       server.httpServer.on('upgrade', (req, socket, head) => {
         if (req.url?.startsWith('/relay')) {
           wss.handleUpgrade(req, socket, head, (ws) => {
@@ -63,5 +65,10 @@ export default defineConfig({
   server: {
     host: true,
     allowedHosts: ['.trycloudflare.com'],
+  },
+  test: {
+    globals: true,
+    environment: "jsdom",
+    setupFiles: "./src/test/setup.ts",
   },
 })

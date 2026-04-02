@@ -22,6 +22,14 @@ export function hpAtLevel1(hitDie: number, conScore: number): number {
   return hitDie + abilityModifier(conScore)
 }
 
+/** HP at any level using average HP per level after 1 */
+export function hpAtLevel(hitDie: number, conScore: number, level: number): number {
+  const conMod = abilityModifier(conScore)
+  const level1Hp = hitDie + conMod
+  const perLevelAvg = Math.floor(hitDie / 2) + 1 + conMod
+  return level1Hp + perLevelAvg * (level - 1)
+}
+
 /** AC (unarmored) = 10 + DEX modifier */
 export function unarmoredAC(dexScore: number): number {
   return 10 + abilityModifier(dexScore)

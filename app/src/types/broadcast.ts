@@ -115,6 +115,15 @@ interface PuzzleSolvedMessage extends BaseMessage {
   type: "puzzleSolved"
 }
 
+interface DeathSaveMessage extends BaseMessage {
+  type: "deathSave"
+  tokenId: string
+  roll: number
+  success: boolean
+  successes: number
+  failures: number
+}
+
 interface SelectCampaignMessage extends BaseMessage {
   type: "selectCampaign"
   campaignId: string
@@ -137,6 +146,7 @@ export type BroadcastMessage =
   | BattleWonMessage
   | DamageMessage
   | PuzzleSolvedMessage
+  | DeathSaveMessage
   | SelectCampaignMessage
 
 // --- Encounter State (persisted to Firebase) ---
@@ -153,6 +163,7 @@ export interface EncounterCombatantState {
   npcId?: string
   isAlly?: boolean
   isPC?: boolean
+  deathSaves?: { successes: number; failures: number }
 }
 
 export interface EncounterState {

@@ -6,6 +6,7 @@ import type {
   SrdTrait,
   SrdLevelDetail,
   SrdReference,
+  SrdSpellDetail,
 } from "../types/character"
 
 const BASE_URL = "https://www.dnd5eapi.co/api"
@@ -59,6 +60,17 @@ export async function fetchClass(index: string): Promise<SrdClass> {
 
 export async function fetchClassLevel(classIndex: string, level: number): Promise<SrdLevelDetail> {
   return fetchJson<SrdLevelDetail>(`/classes/${classIndex}/levels/${level}`)
+}
+
+// --- Spells ---
+
+export async function fetchClassSpells(classIndex: string): Promise<SrdReference[]> {
+  const data = await fetchJson<SrdListResponse>(`/classes/${classIndex}/spells`)
+  return data.results
+}
+
+export async function fetchSpell(index: string): Promise<SrdSpellDetail> {
+  return fetchJson<SrdSpellDetail>(`/spells/${index}`)
 }
 
 // --- Skills ---

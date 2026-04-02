@@ -1,5 +1,11 @@
 import { useState, useEffect, useCallback, useMemo } from "react"
-import type { WizardState, PlayerCharacter, SrdReference, SrdSkill } from "../../types/character"
+import type {
+  WizardState,
+  PlayerCharacter,
+  SrdReference,
+  SrdSkill,
+  EquipmentItem,
+} from "../../types/character"
 import {
   INITIAL_WIZARD_STATE,
   ABILITY_KEYS,
@@ -12,7 +18,7 @@ import { preloadCharacterCreationData } from "../../services/srd"
 import {
   computeRacialBonuses,
   applyBonuses,
-  hpAtLevel1,
+  hpAtLevel,
   unarmoredAC,
   proficiencyBonus,
   classSavingThrows,
@@ -29,7 +35,7 @@ import DetailsStep from "./DetailsStep"
 import ReviewStep from "./ReviewStep"
 
 interface CharacterWizardProps {
-  onComplete: (character: PlayerCharacter) => void
+  onComplete: (character: PlayerCharacter, portraitDataUrl?: string) => void
   onCancel: () => void
 }
 
@@ -158,6 +164,26 @@ export default function CharacterWizard({ onComplete, onCancel }: CharacterWizar
 
     const languages = state.race.languages.map((l) => l.name)
 
+    // Build equipment from fixed items + selected option items
+    const equipment: EquipmentItem[] = state.class.starting_equipment.map((e) => ({
+      name: e.equipment.name,
+      quantity: e.quantity,
+    }))
+    for (let i = 0; i < state.class.starting_equipment_options.length; i++) {
+      const choice = state.class.starting_equipment_options[i]
+      const selected = state.equipmentChoices[i]
+      if (selected !== undefined && choice.from.options[selected]) {
+        const opt = choice.from.options[selected]
+        if (opt.option_type === "counted_reference" && opt.of) {
+          equipment.push({ name: opt.of.name, quantity: opt.count ?? 1 })
+        } else if (opt.item) {
+          equipment.push({ name: opt.item.name, quantity: 1 })
+        }
+      }
+    }
+
+    const hp = hpAtLevel(state.class.hit_die, finalScores.con, state.level)
+
     const character: PlayerCharacter = {
       id: crypto.randomUUID(),
       playerId: "",
@@ -170,18 +196,18 @@ export default function CharacterWizard({ onComplete, onCancel }: CharacterWizar
       className: state.class.name,
       subclass: state.subclass?.index,
       subclassName: state.subclass?.name,
-      level: 1,
+      level: state.level,
       background: state.background,
       backgroundName: bg?.name ?? "",
       alignment: state.alignment,
       baseAbilityScores: { ...state.baseScores },
       racialBonuses,
       abilityScores: finalScores,
-      hp: hpAtLevel1(state.class.hit_die, finalScores.con),
-      maxHp: hpAtLevel1(state.class.hit_die, finalScores.con),
+      hp,
+      maxHp: hp,
       ac: unarmoredAC(finalScores.dex),
       speed: state.race.speed,
-      proficiencyBonus: proficiencyBonus(1),
+      proficiencyBonus: proficiencyBonus(state.level),
       hitDie: state.class.hit_die,
       savingThrows: saves,
       skillProficiencies: Array.from(allSkills),
@@ -191,13 +217,17 @@ export default function CharacterWizard({ onComplete, onCancel }: CharacterWizar
       languages,
       racialTraits,
       classFeatures: [],
+      equipment,
+      gold: state.startingGold,
       spellcastingAbility: state.class.spellcasting?.spellcasting_ability.name,
+      cantrips: [...state.selectedCantrips],
+      spells: [...state.selectedSpells],
       notes: state.notes,
       createdAt: Date.now(),
       updatedAt: Date.now(),
     }
 
-    onComplete(character)
+    onComplete(character, state.portraitDataUrl)
   }, [state, onComplete])
 
   if (loading) {

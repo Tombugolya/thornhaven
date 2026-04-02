@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react"
 import { Plus, Trash2, Shield, Heart, Zap, LogOut } from "lucide-react"
 import { ref, onValue, off, remove, set, push } from "firebase/database"
-import { db } from "../../firebase"
+import { ref as storageRef, uploadString, getDownloadURL } from "firebase/storage"
+import { db, storage } from "../../firebase"
 import type { PlayerCharacter } from "../../types/character"
 import CharacterWizard from "./CharacterWizard"
 import Particles from "../Particles"
@@ -32,9 +33,28 @@ export default function CharacterList({
     return () => off(charsRef)
   }, [userId])
 
-  const handleCreateCharacter = async (character: PlayerCharacter) => {
+  const handleCreateCharacter = async (
+    character: PlayerCharacter,
+    portraitDataUrl?: string,
+  ) => {
     const charRef = push(ref(db, `players/${userId}/characters`))
-    const charWithId = { ...character, id: charRef.key!, playerId: userId }
+    const charId = charRef.key
+    if (!charId) return
+    const charWithId: PlayerCharacter = { ...character, id: charId, playerId: userId }
+
+    // Upload portrait to Firebase Storage if one was provided
+    if (portraitDataUrl) {
+      try {
+        const portraitRef = storageRef(storage, `portraits/${userId}/${charId}.jpg`)
+        await uploadString(portraitRef, portraitDataUrl, "data_url")
+        const downloadUrl = await getDownloadURL(portraitRef)
+        charWithId.portraitUrl = downloadUrl
+      } catch {
+        // Portrait upload failed - save the character without the portrait
+        console.warn("Portrait upload failed, saving character without portrait")
+      }
+    }
+
     await set(charRef, charWithId)
     setShowWizard(false)
   }
@@ -111,11 +131,19 @@ export default function CharacterList({
                 onClick={() => onSelectCharacter(char)}
                 className="relative flex items-center gap-4 p-4 rounded-xl bg-bg-surface/60 border border-bg-elevated/50 hover:border-gold/40 hover:bg-bg-surface/80 transition-all cursor-pointer group backdrop-blur-sm hover:shadow-[0_0_20px_rgba(201,162,39,0.08)]"
               >
-                {/* Initial badge */}
-                <div className="w-12 h-12 rounded-lg bg-gold/10 border border-gold/20 flex items-center justify-center shrink-0">
-                  <span className="font-[family-name:var(--font-display)] text-gold text-lg">
-                    {char.name.charAt(0)}
-                  </span>
+                {/* Initial badge / portrait */}
+                <div className="w-12 h-12 rounded-lg bg-gold/10 border border-gold/20 flex items-center justify-center shrink-0 overflow-hidden">
+                  {char.portraitUrl ? (
+                    <img
+                      src={char.portraitUrl}
+                      alt={char.name}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <span className="font-[family-name:var(--font-display)] text-gold text-lg">
+                      {char.name.charAt(0)}
+                    </span>
+                  )}
                 </div>
 
                 {/* Info */}

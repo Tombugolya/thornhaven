@@ -99,6 +99,8 @@ function getStateUpdates(
         tokenConditions: null,
         activeTurnToken: null,
       }
+    case "deathSave":
+      return null // Death save state is synced via encounter combatants
     default:
       return null
   }

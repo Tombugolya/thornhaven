@@ -25,6 +25,14 @@ interface SceneData {
   symbol?: string
 }
 
+interface DeathSaveState {
+  roll: number | null
+  rolling: boolean
+  success: boolean | null
+  successes: number
+  failures: number
+}
+
 let floatingIdCounter = 0
 
 export default function PlayerView() {
@@ -46,6 +54,46 @@ export default function PlayerView() {
   const [victory, setVictory] = useState<string | null>(null)
   const [floatingNumbers, setFloatingNumbers] = useState<FloatingNumberEntry[]>([])
   const [dyingTokens, setDyingTokens] = useState<Set<string>>(new Set())
+  const [deathSave, setDeathSave] = useState<DeathSaveState | null>(null)
+
+  // Check if the player's PC is at 0 HP via encounter state
+  const pcDown = useMemo(() => {
+    const enc = sessionState?.encounter
+    if (!enc) return false
+    const pc = enc.combatants.find((c) => c.isPC && c.hp <= 0 && c.deathSaves !== undefined)
+    return !!pc
+  }, [sessionState?.encounter])
+
+  // Derive current death save tallies from encounter state (source of truth)
+  const pcDeathSaves = useMemo(() => {
+    const enc = sessionState?.encounter
+    if (!enc) return null
+    const pc = enc.combatants.find((c) => c.isPC && c.deathSaves !== undefined)
+    return pc?.deathSaves ?? null
+  }, [sessionState?.encounter])
+
+  // Sync death save display state with encounter state
+  useEffect(() => {
+    if (pcDown && pcDeathSaves) {
+      setDeathSave((prev) => ({
+        roll: prev?.roll ?? null,
+        rolling: prev?.rolling ?? false,
+        success: prev?.success ?? null,
+        successes: pcDeathSaves.successes,
+        failures: pcDeathSaves.failures,
+      }))
+    } else if (!pcDown) {
+      // PC stabilized or not down -- check if we need to show stabilized message briefly
+      if (deathSave && deathSave.successes >= 3) {
+        // Let stabilized message show for a moment then clear
+        const timer = setTimeout(() => setDeathSave(null), 3000)
+        return () => clearTimeout(timer)
+      }
+      if (deathSave && deathSave.failures < 3) {
+        setDeathSave(null)
+      }
+    }
+  }, [pcDown, pcDeathSaves])
 
   // Derive combat state from live sessionState (Firebase is source of truth)
   const revealedTokens = useMemo(
@@ -166,6 +214,29 @@ export default function PlayerView() {
       return
     }
 
+    // Death save roll from DM
+    if (lastMessage.type === "deathSave") {
+      // Show rolling animation then result
+      setDeathSave({
+        roll: null,
+        rolling: true,
+        success: null,
+        successes: lastMessage.successes,
+        failures: lastMessage.failures,
+      })
+      // After brief spin, reveal the roll
+      setTimeout(() => {
+        setDeathSave({
+          roll: lastMessage.roll,
+          rolling: false,
+          success: lastMessage.success,
+          successes: lastMessage.successes,
+          failures: lastMessage.failures,
+        })
+      }, 1200)
+      return
+    }
+
     // Floating damage number
     if (lastMessage.type === "damage") {
       const entry = {
@@ -258,6 +329,9 @@ export default function PlayerView() {
           transitioning ? "opacity-100" : "opacity-0"
         }`}
       />
+
+      {/* Death save overlay */}
+      {deathSave && <DeathSaveOverlay state={deathSave} />}
 
       {/* Victory overlay */}
       {victory && <VictoryScreen />}
@@ -426,6 +500,228 @@ function VictoryScreen() {
             The battle is won
           </p>
         </div>
+      </div>
+    </div>
+  )
+}
+
+function DeathSaveOverlay({ state }: { state: DeathSaveState }) {
+  const [displayNumber, setDisplayNumber] = useState(0)
+  const stabilized = state.successes >= 3
+  const fallen = state.failures >= 3
+
+  // Rolling number animation
+  useEffect(() => {
+    if (!state.rolling) return
+    const interval = setInterval(() => {
+      setDisplayNumber(Math.floor(Math.random() * 20) + 1)
+    }, 60)
+    return () => clearInterval(interval)
+  }, [state.rolling])
+
+  // When roll lands, set final number
+  useEffect(() => {
+    if (state.roll !== null) {
+      setDisplayNumber(state.roll)
+    }
+  }, [state.roll])
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
+      {/* Dark overlay with vignette */}
+      <div
+        className="absolute inset-0"
+        style={{
+          background:
+            "radial-gradient(ellipse at 50% 50%, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.92) 70%, rgba(0,0,0,0.98) 100%)",
+        }}
+      />
+
+      {/* Pulsing danger border */}
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          boxShadow: "inset 0 0 120px rgba(192,57,43,0.2), inset 0 0 40px rgba(192,57,43,0.1)",
+          animation: "deathSavePulse 3s ease-in-out infinite",
+        }}
+      />
+
+      <div className="relative z-10 flex flex-col items-center gap-8">
+        {/* Title */}
+        <div className="text-center">
+          <h2
+            className="font-[family-name:var(--font-display)] text-2xl md:text-4xl font-bold tracking-[0.2em] uppercase"
+            style={{
+              color: fallen ? "#c0392b" : stabilized ? "#2ecc71" : "#c0392b",
+              textShadow: fallen
+                ? "0 0 30px rgba(192,57,43,0.4)"
+                : stabilized
+                  ? "0 0 30px rgba(46,204,113,0.4)"
+                  : "0 0 30px rgba(192,57,43,0.3)",
+            }}
+          >
+            {fallen ? "Fallen..." : stabilized ? "Stabilized!" : "Death Saving Throw"}
+          </h2>
+          <div
+            className="w-32 h-px mx-auto mt-3"
+            style={{
+              background: fallen
+                ? "linear-gradient(to right, transparent, #c0392b60, transparent)"
+                : stabilized
+                  ? "linear-gradient(to right, transparent, #2ecc7160, transparent)"
+                  : "linear-gradient(to right, transparent, #c0392b40, transparent)",
+            }}
+          />
+        </div>
+
+        {/* D20 Roll Display */}
+        {(state.rolling || state.roll !== null) && !stabilized && !fallen && (
+          <div className="flex flex-col items-center gap-3">
+            <div
+              className={`w-28 h-28 md:w-36 md:h-36 flex items-center justify-center rounded-2xl border-2 ${
+                state.rolling
+                  ? "border-gold/40"
+                  : state.success
+                    ? "border-success/60 shadow-[0_0_40px_rgba(46,204,113,0.3)]"
+                    : "border-danger/60 shadow-[0_0_40px_rgba(192,57,43,0.3)]"
+              }`}
+              style={{
+                background: state.rolling
+                  ? "rgba(201,162,39,0.08)"
+                  : state.success
+                    ? "rgba(46,204,113,0.08)"
+                    : "rgba(192,57,43,0.08)",
+                animation: state.rolling ? "deathSaveRollSpin 0.1s linear infinite" : "none",
+              }}
+            >
+              <span
+                className={`font-[family-name:var(--font-display)] text-5xl md:text-7xl font-bold transition-all duration-300 ${
+                  state.rolling
+                    ? "text-gold/60"
+                    : state.success
+                      ? "text-success-light"
+                      : "text-danger-light"
+                }`}
+                style={{
+                  textShadow: state.rolling
+                    ? "none"
+                    : state.success
+                      ? "0 0 20px rgba(46,204,113,0.5)"
+                      : "0 0 20px rgba(192,57,43,0.5)",
+                }}
+              >
+                {displayNumber || "?"}
+              </span>
+            </div>
+            {!state.rolling && state.roll !== null && (
+              <span
+                className={`text-sm font-semibold tracking-wider uppercase ${
+                  state.roll === 20
+                    ? "text-gold"
+                    : state.success
+                      ? "text-success-light"
+                      : "text-danger-light"
+                }`}
+                style={{ animation: "deathSaveFadeIn 0.5s ease-out" }}
+              >
+                {state.roll === 20
+                  ? "Natural 20!"
+                  : state.roll === 1
+                    ? "Natural 1..."
+                    : state.success
+                      ? "Success"
+                      : "Failure"}
+              </span>
+            )}
+          </div>
+        )}
+
+        {/* Death Save Circles */}
+        {!stabilized && !fallen && (
+          <div className="flex items-center gap-8">
+            {/* Successes */}
+            <div className="flex flex-col items-center gap-2">
+              <span className="text-[10px] text-success-light uppercase tracking-[0.2em] font-medium">
+                Saves
+              </span>
+              <div className="flex items-center gap-2">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <div
+                    key={`s-${i}`}
+                    className={`w-5 h-5 md:w-6 md:h-6 rounded-full border-2 transition-all duration-500 ${
+                      i < state.successes
+                        ? "bg-success border-success-light shadow-[0_0_10px_rgba(46,204,113,0.5)]"
+                        : "bg-transparent border-success/20"
+                    }`}
+                  />
+                ))}
+              </div>
+            </div>
+
+            {/* Divider */}
+            <div className="w-px h-10 bg-parchment/10" />
+
+            {/* Failures */}
+            <div className="flex flex-col items-center gap-2">
+              <span className="text-[10px] text-danger-light uppercase tracking-[0.2em] font-medium">
+                Fails
+              </span>
+              <div className="flex items-center gap-2">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <div
+                    key={`f-${i}`}
+                    className={`w-5 h-5 md:w-6 md:h-6 rounded-full border-2 transition-all duration-500 ${
+                      i < state.failures
+                        ? "bg-danger border-danger-light shadow-[0_0_10px_rgba(192,57,43,0.5)]"
+                        : "bg-transparent border-danger/20"
+                    }`}
+                  />
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Stabilized / Fallen final state */}
+        {stabilized && (
+          <div
+            className="flex flex-col items-center gap-3"
+            style={{ animation: "deathSaveFadeIn 1s ease-out" }}
+          >
+            <div
+              className="w-20 h-20 rounded-full border-2 border-success/40 flex items-center justify-center"
+              style={{
+                background: "rgba(46,204,113,0.1)",
+                boxShadow: "0 0 40px rgba(46,204,113,0.2)",
+              }}
+            >
+              <span className="text-4xl">&#x2764;</span>
+            </div>
+            <p className="text-parchment/40 text-xs tracking-[0.3em] uppercase">
+              You cling to life
+            </p>
+          </div>
+        )}
+
+        {fallen && (
+          <div
+            className="flex flex-col items-center gap-3"
+            style={{ animation: "deathSaveFadeIn 1s ease-out" }}
+          >
+            <div
+              className="w-20 h-20 rounded-full border-2 border-danger/40 flex items-center justify-center"
+              style={{
+                background: "rgba(192,57,43,0.1)",
+                boxShadow: "0 0 40px rgba(192,57,43,0.2)",
+              }}
+            >
+              <span className="text-4xl">&#x1F480;</span>
+            </div>
+            <p className="text-parchment/40 text-xs tracking-[0.3em] uppercase">
+              The light fades
+            </p>
+          </div>
+        )}
       </div>
     </div>
   )

@@ -1,6 +1,10 @@
-import { useCallback, useMemo } from "react"
+import { useCallback, useMemo, useRef, useState } from "react"
 import type { WizardState } from "../../types/character"
-import { BACKGROUNDS, ALIGNMENTS } from "../../types/character"
+import { BACKGROUNDS, ALIGNMENTS, STARTING_GOLD } from "../../types/character"
+
+const LEVEL_OPTIONS = Array.from({ length: 20 }, (_, i) => i + 1)
+const MAX_PORTRAIT_BYTES = 2 * 1024 * 1024 // 2 MB
+const ACCEPTED_TYPES = ["image/jpeg", "image/png", "image/webp"]
 
 interface DetailsStepProps {
   state: WizardState
@@ -8,6 +12,52 @@ interface DetailsStepProps {
 }
 
 export default function DetailsStep({ state, onChange }: DetailsStepProps) {
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [portraitError, setPortraitError] = useState<string | null>(null)
+
+  const handlePortraitSelect = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0]
+      if (!file) return
+
+      if (!ACCEPTED_TYPES.includes(file.type)) {
+        setPortraitError("Please select a JPEG, PNG, or WebP image.")
+        return
+      }
+
+      if (file.size > MAX_PORTRAIT_BYTES) {
+        setPortraitError("Image must be under 2 MB.")
+        return
+      }
+
+      setPortraitError(null)
+
+      const reader = new FileReader()
+      reader.onload = () => {
+        if (typeof reader.result === "string") {
+          onChange({ portraitDataUrl: reader.result })
+        }
+      }
+      reader.readAsDataURL(file)
+    },
+    [onChange],
+  )
+
+  const handlePortraitRemove = useCallback(() => {
+    onChange({ portraitDataUrl: undefined })
+    setPortraitError(null)
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ""
+    }
+  }, [onChange])
+
+  const handleLevelChange = useCallback(
+    (e: React.ChangeEvent<HTMLSelectElement>) => {
+      onChange({ level: Number(e.target.value) })
+    },
+    [onChange],
+  )
+
   const handleNameChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       onChange({ name: e.target.value.slice(0, 30) })
@@ -36,10 +86,32 @@ export default function DetailsStep({ state, onChange }: DetailsStepProps) {
     [onChange],
   )
 
+  const handleEquipmentChoice = useCallback(
+    (groupIndex: number, optionIndex: number) => {
+      const updated = [...state.equipmentChoices]
+      updated[groupIndex] = optionIndex
+      onChange({ equipmentChoices: updated })
+    },
+    [onChange, state.equipmentChoices],
+  )
+
+  const handleGoldChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const val = parseInt(e.target.value, 10)
+      onChange({ startingGold: Number.isNaN(val) ? 0 : Math.max(0, val) })
+    },
+    [onChange],
+  )
+
   const selectedBackground = useMemo(
     () => BACKGROUNDS.find((b) => b.index === state.background),
     [state.background],
   )
+
+  const startingGoldFormula = useMemo(() => {
+    if (!state.class) return null
+    return STARTING_GOLD[state.class.index] ?? null
+  }, [state.class])
 
   return (
     <div className="space-y-6">
@@ -60,6 +132,24 @@ export default function DetailsStep({ state, onChange }: DetailsStepProps) {
             "linear-gradient(145deg, rgba(184,164,120,0.05) 0%, rgba(26,26,46,0.6) 30%, rgba(160,140,100,0.04) 60%, rgba(26,26,46,0.6) 100%)",
         }}
       >
+        {/* Starting level */}
+        <div className="space-y-2">
+          <label className="block text-parchment text-xs uppercase tracking-wider font-[family-name:var(--font-display)]">
+            Starting Level
+          </label>
+          <select
+            value={state.level}
+            onChange={handleLevelChange}
+            className="w-full bg-bg-surface border border-gold/30 rounded-lg px-4 py-2.5 text-parchment focus:outline-none focus:border-gold cursor-pointer"
+          >
+            {LEVEL_OPTIONS.map((lvl) => (
+              <option key={lvl} value={lvl}>
+                Level {lvl}
+              </option>
+            ))}
+          </select>
+        </div>
+
         {/* Character name */}
         <div className="space-y-2">
           <label className="block text-parchment text-xs uppercase tracking-wider font-[family-name:var(--font-display)]">
@@ -92,6 +182,72 @@ export default function DetailsStep({ state, onChange }: DetailsStepProps) {
             />
           </div>
           <p className="text-text-muted text-xs text-right">{state.name.length} / 30</p>
+        </div>
+
+        {/* Portrait upload */}
+        <div className="space-y-2">
+          <label className="block text-parchment text-xs uppercase tracking-wider font-[family-name:var(--font-display)]">
+            Portrait <span className="text-text-muted font-normal normal-case">(optional)</span>
+          </label>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            onChange={handlePortraitSelect}
+            className="hidden"
+          />
+          <div className="flex items-center gap-5">
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="group relative w-[128px] h-[128px] rounded-full border-2 border-dashed border-gold/30 hover:border-gold/60 bg-bg-surface/40 hover:bg-bg-surface/60 transition-all cursor-pointer overflow-hidden flex items-center justify-center shrink-0 hover:shadow-[0_0_20px_rgba(201,162,39,0.08)]"
+            >
+              {state.portraitDataUrl ? (
+                <img
+                  src={state.portraitDataUrl}
+                  alt="Portrait preview"
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="flex flex-col items-center gap-1.5 text-gold/40 group-hover:text-gold/70 transition-colors">
+                  <svg
+                    width="32"
+                    height="32"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+                    <circle cx="12" cy="13" r="4" />
+                  </svg>
+                  <span className="text-[10px] uppercase tracking-wider">Upload</span>
+                </div>
+              )}
+              {state.portraitDataUrl && (
+                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                  <span className="text-parchment text-xs font-medium">Change</span>
+                </div>
+              )}
+            </button>
+            <div className="flex flex-col gap-2">
+              <p className="text-text-muted text-xs leading-relaxed">
+                JPEG, PNG, or WebP. Max 2 MB.
+              </p>
+              {state.portraitDataUrl && (
+                <button
+                  type="button"
+                  onClick={handlePortraitRemove}
+                  className="text-danger text-xs hover:text-danger/80 transition-colors cursor-pointer text-left"
+                >
+                  Remove portrait
+                </button>
+              )}
+            </div>
+          </div>
+          {portraitError && <p className="text-danger text-xs mt-1">{portraitError}</p>}
         </div>
 
         {/* Background */}
@@ -159,6 +315,133 @@ export default function DetailsStep({ state, onChange }: DetailsStepProps) {
             </div>
           )}
         </div>
+
+        {/* Equipment */}
+        {state.class && (
+          <div className="space-y-4">
+            <div className="flex items-center gap-2">
+              {/* Backpack icon */}
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="text-gold/70"
+              >
+                <path d="M4 10h16v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V10z" />
+                <path d="M8 10V6a4 4 0 0 1 8 0v4" />
+                <path d="M10 14h4" />
+              </svg>
+              <label className="text-parchment text-xs uppercase tracking-wider font-[family-name:var(--font-display)]">
+                Starting Equipment
+              </label>
+            </div>
+
+            {/* Fixed starting equipment */}
+            {state.class.starting_equipment.length > 0 && (
+              <div>
+                <h4 className="text-text-muted text-[10px] uppercase tracking-wider mb-2">
+                  Guaranteed Items
+                </h4>
+                <div className="flex flex-wrap gap-2">
+                  {state.class.starting_equipment.map((item) => (
+                    <span
+                      key={item.equipment.index}
+                      className="px-2.5 py-1 rounded-lg bg-gold/10 border border-gold/20 text-gold text-xs font-medium"
+                    >
+                      {item.quantity > 1 ? `${item.quantity}x ` : ""}
+                      {item.equipment.name}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Equipment choices */}
+            {state.class.starting_equipment_options.length > 0 && (
+              <div className="space-y-3">
+                <h4 className="text-text-muted text-[10px] uppercase tracking-wider">
+                  Equipment Choices
+                </h4>
+                {state.class.starting_equipment_options.map((choice, groupIndex) => (
+                  <div
+                    key={groupIndex}
+                    className="p-3 rounded-xl bg-bg-surface/60 border border-bg-elevated/50 space-y-2"
+                  >
+                    <p className="text-parchment text-xs font-medium">{choice.desc}</p>
+                    <div className="space-y-1.5">
+                      {choice.from.options.map((option, optionIndex) => {
+                        const label =
+                          option.option_type === "counted_reference"
+                            ? `${option.count ?? 1}x ${option.of?.name ?? "Unknown"}`
+                            : option.item?.name ?? `Option ${optionIndex + 1}`
+                        return (
+                          <label
+                            key={optionIndex}
+                            className="flex items-center gap-2.5 cursor-pointer group"
+                          >
+                            <input
+                              type="radio"
+                              name={`equipment-choice-${groupIndex}`}
+                              checked={state.equipmentChoices[groupIndex] === optionIndex}
+                              onChange={() => handleEquipmentChoice(groupIndex, optionIndex)}
+                              className="accent-[#c9a227] w-3.5 h-3.5 cursor-pointer"
+                            />
+                            <span className="text-parchment text-xs group-hover:text-gold transition-colors">
+                              {label}
+                            </span>
+                          </label>
+                        )
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Starting gold */}
+            <div className="p-3 rounded-xl bg-bg-surface/60 border border-bg-elevated/50 space-y-2">
+              <div className="flex items-center gap-2">
+                {/* Coin icon */}
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="text-gold"
+                >
+                  <circle cx="12" cy="12" r="10" />
+                  <path d="M12 6v12M8 10h8M8 14h8" />
+                </svg>
+                <span className="text-parchment text-xs font-medium">Starting Gold</span>
+                {startingGoldFormula && (
+                  <span className="text-text-muted text-[10px]">
+                    (roll: {startingGoldFormula})
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  min={0}
+                  value={state.startingGold || ""}
+                  onChange={handleGoldChange}
+                  placeholder="0"
+                  className="w-28 bg-bg-surface border border-gold/30 rounded-lg px-3 py-1.5 text-gold text-sm font-mono focus:outline-none focus:border-gold placeholder:text-text-muted/30"
+                />
+                <span className="text-text-muted text-xs">gp</span>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Alignment */}
         <div className="space-y-2">
