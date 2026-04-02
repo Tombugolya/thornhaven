@@ -3,13 +3,13 @@ import { getDatabase, type Database } from "firebase/database"
 import { getAuth, type Auth } from "firebase/auth"
 
 const firebaseConfig = {
-  apiKey: "***REMOVED***",
-  authDomain: "thornhaven-quests.firebaseapp.com",
-  databaseURL: "https://thornhaven-quests-default-rtdb.europe-west1.firebasedatabase.app",
-  projectId: "thornhaven-quests",
-  storageBucket: "thornhaven-quests.firebasestorage.app",
-  messagingSenderId: "***REMOVED***",
-  appId: "1:***REMOVED***:web:b8c4824dc1c2cf08c9f720",
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  databaseURL: import.meta.env.VITE_FIREBASE_DATABASE_URL,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
 }
 
 const app = initializeApp(firebaseConfig)
