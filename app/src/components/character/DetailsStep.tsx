@@ -368,33 +368,37 @@ export default function DetailsStep({ state, onChange }: DetailsStepProps) {
                   Equipment Choices
                 </h4>
                 {state.class.starting_equipment_options.map((choice, groupIndex) => (
-                  <div
-                    key={groupIndex}
-                    className="p-3 rounded-xl bg-bg-surface/60 border border-bg-elevated/50 space-y-2"
-                  >
-                    <p className="text-parchment text-xs font-medium">{choice.desc}</p>
-                    <div className="space-y-1.5">
+                  <div key={groupIndex} className="space-y-2">
+                    <p className="text-text-muted text-[10px] uppercase tracking-wider">
+                      Choose one
+                    </p>
+                    <div className="grid grid-cols-2 gap-2">
                       {choice.from.options.map((option, optionIndex) => {
                         const label =
                           option.option_type === "counted_reference"
                             ? `${option.count ?? 1}x ${option.of?.name ?? "Unknown"}`
                             : option.item?.name ?? `Option ${optionIndex + 1}`
+                        const isSelected = state.equipmentChoices[groupIndex] === optionIndex
                         return (
-                          <label
+                          <button
                             key={optionIndex}
-                            className="flex items-center gap-2.5 cursor-pointer group"
+                            type="button"
+                            onClick={() => handleEquipmentChoice(groupIndex, optionIndex)}
+                            className={`p-3 rounded-xl text-left text-xs transition-all duration-200 cursor-pointer border ${
+                              isSelected
+                                ? "border-gold/50 bg-gold/10 text-gold shadow-[0_0_10px_rgba(201,162,39,0.1)]"
+                                : "border-bg-elevated/50 bg-bg-surface/40 text-parchment-dim hover:border-gold/20 hover:bg-bg-surface/60"
+                            }`}
                           >
-                            <input
-                              type="radio"
-                              name={`equipment-choice-${groupIndex}`}
-                              checked={state.equipmentChoices[groupIndex] === optionIndex}
-                              onChange={() => handleEquipmentChoice(groupIndex, optionIndex)}
-                              className="accent-[#c9a227] w-3.5 h-3.5 cursor-pointer"
-                            />
-                            <span className="text-parchment text-xs group-hover:text-gold transition-colors">
-                              {label}
-                            </span>
-                          </label>
+                            <div className="flex items-center gap-2">
+                              <div
+                                className={`w-3 h-3 rounded-full border-2 shrink-0 transition-colors ${
+                                  isSelected ? "border-gold bg-gold" : "border-text-muted/40"
+                                }`}
+                              />
+                              <span className="font-medium">{label}</span>
+                            </div>
+                          </button>
                         )
                       })}
                     </div>

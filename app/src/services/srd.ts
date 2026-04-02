@@ -64,8 +64,17 @@ export async function fetchClassLevel(classIndex: string, level: number): Promis
 
 // --- Spells ---
 
-export async function fetchClassSpells(classIndex: string): Promise<SrdReference[]> {
-  const data = await fetchJson<SrdListResponse>(`/classes/${classIndex}/spells`)
+interface SrdSpellListItem {
+  index: string
+  name: string
+  level: number
+  url: string
+}
+
+export async function fetchClassSpells(classIndex: string): Promise<SrdSpellListItem[]> {
+  const data = await fetchJson<{ count: number; results: SrdSpellListItem[] }>(
+    `/classes/${classIndex}/spells`,
+  )
   return data.results
 }
 

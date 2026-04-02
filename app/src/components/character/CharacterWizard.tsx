@@ -86,10 +86,8 @@ export default function CharacterWizard({ onComplete, onCancel }: CharacterWizar
   const canAdvance = useMemo(() => {
     switch (state.step) {
       case 0:
-        // Race must be selected; if subraces exist, one must be chosen
-        if (!state.race) return false
-        if (state.race.subraces.length > 0 && !state.subrace) return false
-        return true
+        // Race must be selected; subrace is optional
+        return !!state.race
       case 1: {
         // Class must be selected; skill choices must be fulfilled
         if (!state.class) return false

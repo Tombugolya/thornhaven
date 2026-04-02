@@ -1,7 +1,13 @@
 import { useState, useEffect, useCallback, useMemo } from "react"
-import type { SrdReference, SrdSpellDetail, WizardState } from "../../types/character"
+import type { SrdSpellDetail, WizardState } from "../../types/character"
 import { fetchClassSpells, fetchSpell } from "../../services/srd"
 import Tooltip from "./Tooltip"
+
+interface SpellListItem {
+  index: string
+  name: string
+  level: number
+}
 
 interface SpellSelectionProps {
   classIndex: string
@@ -41,7 +47,7 @@ function spellLimitLabel(classIndex: string): string {
 }
 
 export default function SpellSelection({ classIndex, state, onChange }: SpellSelectionProps) {
-  const [allSpells, setAllSpells] = useState<SrdReference[]>([])
+  const [allSpells, setAllSpells] = useState<SpellListItem[]>([])
   const [spellDetails, setSpellDetails] = useState<Map<string, SrdSpellDetail>>(new Map())
   const [loading, setLoading] = useState(true)
   const [expandedSpell, setExpandedSpell] = useState<string | null>(null)
@@ -54,19 +60,9 @@ export default function SpellSelection({ classIndex, state, onChange }: SpellSel
     let cancelled = false
     setLoading(true)
     fetchClassSpells(classIndex)
-      .then(async (spells) => {
+      .then((spells) => {
         if (cancelled) return
         setAllSpells(spells)
-
-        // Fetch details for all spells to get their level and school
-        const details = await Promise.all(spells.map((s) => fetchSpell(s.index)))
-        if (cancelled) return
-
-        const map = new Map<string, SrdSpellDetail>()
-        for (const d of details) {
-          map.set(d.index, d)
-        }
-        setSpellDetails(map)
         setLoading(false)
       })
       .catch(() => {
@@ -77,23 +73,23 @@ export default function SpellSelection({ classIndex, state, onChange }: SpellSel
     }
   }, [classIndex])
 
-  const cantrips = useMemo(
-    () =>
-      allSpells.filter((s) => {
-        const detail = spellDetails.get(s.index)
-        return detail !== undefined && detail.level === 0
-      }),
-    [allSpells, spellDetails],
+  // Fetch individual spell detail only when expanded (lazy)
+  const loadSpellDetail = useCallback(
+    async (index: string) => {
+      if (spellDetails.has(index)) return
+      const detail = await fetchSpell(index)
+      setSpellDetails((prev) => {
+        const next = new Map(prev)
+        next.set(index, detail)
+        return next
+      })
+    },
+    [spellDetails],
   )
 
-  const level1Spells = useMemo(
-    () =>
-      allSpells.filter((s) => {
-        const detail = spellDetails.get(s.index)
-        return detail !== undefined && detail.level === 1
-      }),
-    [allSpells, spellDetails],
-  )
+  const cantrips = useMemo(() => allSpells.filter((s) => s.level === 0), [allSpells])
+
+  const level1Spells = useMemo(() => allSpells.filter((s) => s.level === 1), [allSpells])
 
   const handleToggleCantrip = useCallback(
     (index: string) => {
@@ -120,9 +116,13 @@ export default function SpellSelection({ classIndex, state, onChange }: SpellSel
     [state.selectedSpells, spellLimit, onChange],
   )
 
-  const handleToggleExpand = useCallback((index: string) => {
-    setExpandedSpell((prev) => (prev === index ? null : index))
-  }, [])
+  const handleToggleExpand = useCallback(
+    (index: string) => {
+      setExpandedSpell((prev) => (prev === index ? null : index))
+      loadSpellDetail(index)
+    },
+    [loadSpellDetail],
+  )
 
   if (loading) {
     return (
