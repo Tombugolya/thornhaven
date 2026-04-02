@@ -374,10 +374,25 @@ export default function DetailsStep({ state, onChange }: DetailsStepProps) {
                     </p>
                     <div className="grid grid-cols-2 gap-2">
                       {choice.from.options.map((option, optionIndex) => {
-                        const label =
-                          option.option_type === "counted_reference"
-                            ? `${option.count ?? 1}x ${option.of?.name ?? "Unknown"}`
-                            : option.item?.name ?? `Option ${optionIndex + 1}`
+                        let label: string
+                        if (option.option_type === "counted_reference") {
+                          label = `${option.count ?? 1}x ${option.of?.name ?? "Unknown"}`
+                        } else if (option.option_type === "multiple" && option.items) {
+                          label = option.items
+                            .map((sub) => {
+                              if (sub.option_type === "counted_reference") {
+                                return `${sub.count ?? 1}x ${sub.of?.name ?? "item"}`
+                              }
+                              if (sub.item) return sub.item.name
+                              if (sub.choice) return sub.choice.desc
+                              return "item"
+                            })
+                            .join(" + ")
+                        } else if (option.option_type === "choice" && option.choice) {
+                          label = option.choice.desc
+                        } else {
+                          label = option.item?.name ?? choice.desc.split(" or ")[optionIndex] ?? `Option ${optionIndex + 1}`
+                        }
                         const isSelected = state.equipmentChoices[groupIndex] === optionIndex
                         return (
                           <button

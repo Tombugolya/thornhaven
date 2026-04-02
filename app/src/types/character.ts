@@ -27,6 +27,7 @@ export interface SrdOption {
   count?: number
   of?: SrdReference
   choice?: SrdProficiencyChoice
+  items?: SrdOption[]
 }
 
 export interface SrdRace {
