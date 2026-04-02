@@ -1,0 +1,88 @@
+[debug] [2026-04-02T15:58:11.349Z] ----------------------------------------------------------------------
+[debug] [2026-04-02T15:58:11.350Z] Command:       /opt/homebrew/Cellar/node/25.6.1/bin/node /opt/homebrew/bin/firebase deploy --only functions
+[debug] [2026-04-02T15:58:11.350Z] CLI Version:   15.12.0
+[debug] [2026-04-02T15:58:11.350Z] Platform:      darwin
+[debug] [2026-04-02T15:58:11.350Z] Node Version:  v25.6.1
+[debug] [2026-04-02T15:58:11.350Z] Time:          Thu Apr 02 2026 18:58:11 GMT+0300 (שעון ישראל (קיץ))
+[debug] [2026-04-02T15:58:11.350Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-04-02T15:58:11.351Z] >>> [apiv2][query] GET https://firebase-public.firebaseio.com/cli.json [none]
+[debug] [2026-04-02T15:58:12.068Z] No OAuth tokens found
+[debug] [2026-04-02T15:58:12.068Z] No OAuth tokens found
+[debug] [2026-04-02T15:58:12.068Z] [functions] service account IAM check errored, deploy may fail: Unable to refresh auth: not yet authenticated. {"name":"FirebaseError","children":[],"exit":1,"message":"Unable to refresh auth: not yet authenticated.","status":500}
+[error] 
+[error] Error: No currently active project.
+To run this command, you need to specify a project. You have two options:
+- Run this command with --project <alias_or_project_id>.
+- Set an active project by running firebase use --add, then rerun this command.
+To list all the Firebase projects to which you have access, run firebase projects:list.
+To learn about active projects for the CLI, visit https://firebase.google.com/docs/cli#project_aliases
+
+
+[debug] [2026-04-02T15:58:12.419Z] <<< [apiv2][status] GET https://firebase-public.firebaseio.com/cli.json 200
+[debug] [2026-04-02T15:58:12.420Z] <<< [apiv2][body] GET https://firebase-public.firebaseio.com/cli.json {"cloudBuildErrorAfter":1594252800000,"cloudBuildWarnAfter":1590019200000,"defaultNode10After":1594252800000,"minVersion":"3.0.5","node8DeploysDisabledAfter":1613390400000,"node8RuntimeDisabledAfter":1615809600000,"node8WarnAfter":1600128000000}
+[debug] [2026-04-02T15:58:29.847Z] ----------------------------------------------------------------------
+[debug] [2026-04-02T15:58:29.848Z] Command:       /opt/homebrew/Cellar/node/25.6.1/bin/node /opt/homebrew/bin/firebase use thornhaven-quests
+[debug] [2026-04-02T15:58:29.848Z] CLI Version:   15.12.0
+[debug] [2026-04-02T15:58:29.848Z] Platform:      darwin
+[debug] [2026-04-02T15:58:29.849Z] Node Version:  v25.6.1
+[debug] [2026-04-02T15:58:29.849Z] Time:          Thu Apr 02 2026 18:58:29 GMT+0300 (שעון ישראל (קיץ))
+[debug] [2026-04-02T15:58:29.849Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-04-02T15:58:29.918Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-04-02T15:58:38.334Z] Running auto auth
+[debug] [2026-04-02T15:58:38.334Z] No OAuth tokens found
+[debug] [2026-04-02T15:58:38.335Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/thornhaven-quests/services/cloudresourcemanager.googleapis.com [none]
+[debug] [2026-04-02T15:58:38.335Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/thornhaven-quests/services/cloudresourcemanager.googleapis.com  x-goog-user-project=thornhaven-quests
+[debug] [2026-04-02T15:58:39.470Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/thornhaven-quests/services/cloudresourcemanager.googleapis.com 403
+[debug] [2026-04-02T15:58:39.470Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/thornhaven-quests/services/cloudresourcemanager.googleapis.com [omitted]
+[debug] [2026-04-02T15:58:39.471Z] Unable to check that https://cloudresourcemanager.googleapis.com is enabled on thornhaven-quests. Calls to it will fail if it is not enabled
+[debug] [2026-04-02T15:58:39.471Z] No OAuth tokens found
+[debug] [2026-04-02T15:58:39.471Z] >>> [apiv2][query] GET https://cloudresourcemanager.googleapis.com/v1/projects/thornhaven-quests [none]
+[debug] [2026-04-02T15:58:40.526Z] <<< [apiv2][status] GET https://cloudresourcemanager.googleapis.com/v1/projects/thornhaven-quests 403
+[debug] [2026-04-02T15:58:40.526Z] <<< [apiv2][body] GET https://cloudresourcemanager.googleapis.com/v1/projects/thornhaven-quests {"error":{"code":403,"message":"The caller does not have permission","status":"PERMISSION_DENIED"}}
+[error] 
+[error] Error: Invalid project selection, please verify project thornhaven-quests exists and you have access.
+[debug] [2026-04-02T17:26:31.813Z] ----------------------------------------------------------------------
+[debug] [2026-04-02T17:26:31.825Z] Command:       /usr/local/bin/firebase /Users/tom/.cache/firebase/tools/lib/node_modules/firebase-tools/lib/bin/firebase login --no-localhost
+[debug] [2026-04-02T17:26:31.825Z] CLI Version:   15.12.0
+[debug] [2026-04-02T17:26:31.825Z] Platform:      darwin
+[debug] [2026-04-02T17:26:31.825Z] Node Version:  v20.18.2
+[debug] [2026-04-02T17:26:31.825Z] Time:          Thu Apr 02 2026 20:26:31 GMT+0300 (GMT+03:00)
+[debug] [2026-04-02T17:26:31.826Z] ----------------------------------------------------------------------
+[debug] 
+[info] i  The Firebase CLI’s MCP server feature can optionally make use of Gemini in Firebase. Learn more about Gemini in Firebase and how it uses your data: https://firebase.google.com/docs/gemini-in-firebase#how-gemini-in-firebase-uses-your-data 
+[info] 
+[info] i  Firebase optionally collects CLI and Emulator Suite usage and error reporting information to help improve our products. Data is collected in accordance with Google's privacy policy (https://policies.google.com/privacy) and is not used to identify you. 
+[info] 
+[info] i  To change your preferences at any time, run `firebase logout` and `firebase login` again. 
+[debug] [2026-04-02T17:26:38.363Z] >>> [apiv2][query] POST https://auth.firebase.tools/attest [none]
+[debug] [2026-04-02T17:26:38.364Z] >>> [apiv2][body] POST https://auth.firebase.tools/attest {"session_id":"48a1178c-4a00-40e8-841b-4da1cecbdeb0"}
+[debug] [2026-04-02T17:26:39.144Z] <<< [apiv2][status] POST https://auth.firebase.tools/attest 200
+[debug] [2026-04-02T17:26:39.146Z] <<< [apiv2][body] POST https://auth.firebase.tools/attest {"token":"HcWyy7MRwClXoeKplrTpiL5IPhUZWlZlyk3Ass1ua1Y"}
+[info] 
+[info] To sign in to the Firebase CLI:
+[info] 
+[info] 1. Take note of your session ID:
+[info] 
+[info]    48A11
+[info] 
+[info] 2. Visit the URL below on any device and follow the instructions to get your code:
+[info] 
+[info]    https://auth.firebase.tools/login?code_challenge=U56R_o5siW_ThHOfd5vrGxe-Aznq5vMRPPYT5stC8PQ&session=48a1178c-4a00-40e8-841b-4da1cecbdeb0&attest=HcWyy7MRwClXoeKplrTpiL5IPhUZWlZlyk3Ass1ua1Y
+[info] 
+[info] 3. Paste or enter the authorization code below once you have it:
+[info] 
+[debug] [2026-04-02T17:27:04.423Z] >>> [apiv2][query] POST https://accounts.google.com/o/oauth2/token [none]
+[debug] [2026-04-02T17:27:04.431Z] >>> [apiv2][body] POST https://accounts.google.com/o/oauth2/token [omitted]
+[debug] [2026-04-02T17:27:04.691Z] <<< [apiv2][status] POST https://accounts.google.com/o/oauth2/token 500
+[debug] [2026-04-02T17:27:04.691Z] <<< [apiv2][body] POST https://accounts.google.com/o/oauth2/token [omitted]
+[debug] [2026-04-02T17:27:04.695Z] Token Fetch Error: FirebaseError: Request to https://accounts.google.com/o/oauth2/token had HTTP Error: 500, internal_failure
+    at responseToError (/Users/tom/.cache/firebase/tools/lib/node_modules/firebase-tools/lib/responseToError.js:53:12)
+    at RetryOperation._fn (/Users/tom/.cache/firebase/tools/lib/node_modules/firebase-tools/lib/apiv2.js:333:77)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+[error] Authentication Error: Your credentials are no longer valid. Please run firebase login --reauth
+
+For CI servers and headless environments, generate a new token with firebase login:ci
+[error] 
+[error] Error: Unable to authenticate using the provided code. Please try again.

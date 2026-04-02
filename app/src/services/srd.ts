@@ -9,9 +9,12 @@ import type {
   SrdSpellDetail,
 } from "../types/character"
 
+import { auth } from "../firebase"
+
 // Use our backend API when available, fall back to SRD directly
 const API_BASE = import.meta.env.VITE_API_URL ?? ""
 const BASE_URL = API_BASE ? `${API_BASE}/api` : "https://www.dnd5eapi.co/api"
+const hasBackend = !!API_BASE
 
 // In-memory cache — SRD data is static, never changes
 const cache = new Map<string, unknown>()
@@ -20,7 +23,15 @@ async function fetchJson<T>(path: string): Promise<T> {
   const cached = cache.get(path)
   if (cached) return cached as T
 
-  const response = await fetch(`${BASE_URL}${path}`)
+  const headers: Record<string, string> = {}
+
+  // Add auth token when calling our backend
+  if (hasBackend && auth.currentUser) {
+    const token = await auth.currentUser.getIdToken()
+    headers["Authorization"] = `Bearer ${token}`
+  }
+
+  const response = await fetch(`${BASE_URL}${path}`, { headers })
   if (!response.ok) {
     throw new Error(`SRD API error: ${response.status} ${response.statusText}`)
   }
