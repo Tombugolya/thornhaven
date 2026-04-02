@@ -19,7 +19,6 @@ export default function CharacterList({
   onSignOut,
 }: CharacterListProps) {
   const [characters, setCharacters] = useState<PlayerCharacter[]>([])
-  const [loading, setLoading] = useState(true)
   const [showWizard, setShowWizard] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
 
@@ -27,12 +26,7 @@ export default function CharacterList({
     const charsRef = ref(db, `players/${userId}/characters`)
     onValue(charsRef, (snap) => {
       const data = snap.val() as Record<string, PlayerCharacter> | null
-      if (data) {
-        setCharacters(Object.values(data))
-      } else {
-        setCharacters([])
-      }
-      setLoading(false)
+      setCharacters(data ? Object.values(data) : [])
     })
     return () => off(charsRef)
   }, [userId])
@@ -93,9 +87,7 @@ export default function CharacterList({
         </button>
 
         {/* Character list */}
-        {loading ? (
-          <div className="text-center text-text-muted text-sm py-8">Loading characters...</div>
-        ) : characters.length > 0 ? (
+        {characters.length > 0 ? (
           <div className="space-y-3">
             {characters.map((char) => (
               <div
