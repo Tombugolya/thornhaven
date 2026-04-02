@@ -25,6 +25,9 @@ const METHODS = [
   { id: "manual", label: "Manual" },
 ] as const
 
+// Cache scores per method so switching back restores them
+const methodScoreCache: Record<string, AbilityScores> = {}
+
 export default function AbilityScoreStep({ state, onChange }: AbilityScoreStepProps) {
   const racialBonuses = useMemo(() => {
     if (!state.race) return {}
@@ -43,14 +46,20 @@ export default function AbilityScoreStep({ state, onChange }: AbilityScoreStepPr
 
   const handleMethodChange = useCallback(
     (method: WizardState["method"]) => {
-      const resetScores: AbilityScores = { str: 8, dex: 8, con: 8, int: 8, wis: 8, cha: 8 }
-      if (method === "manual") {
+      if (method === state.method) return
+      // Save current scores before switching
+      methodScoreCache[state.method] = { ...state.baseScores }
+      // Restore cached scores for the target method, or use defaults
+      const cached = methodScoreCache[method]
+      if (cached) {
+        onChange({ method, baseScores: cached })
+      } else if (method === "manual") {
         onChange({ method, baseScores: { str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 10 } })
       } else {
-        onChange({ method, baseScores: resetScores })
+        onChange({ method, baseScores: { str: 8, dex: 8, con: 8, int: 8, wis: 8, cha: 8 } })
       }
     },
-    [onChange],
+    [state.method, state.baseScores, onChange],
   )
 
   const handleScoreChange = useCallback(
@@ -114,6 +123,31 @@ export default function AbilityScoreStep({ state, onChange }: AbilityScoreStepPr
             {m.label}
           </button>
         ))}
+      </div>
+
+      {/* Method description */}
+      <div className="px-4 py-3 rounded-xl bg-bg-surface/40 border border-bg-elevated/30 text-xs text-text-muted">
+        {state.method === "standard-array" && (
+          <p>
+            Assign the values <span className="text-parchment font-mono">15, 14, 13, 12, 10, 8</span> to
+            your six abilities. Each value can only be used once. Quick and balanced.
+          </p>
+        )}
+        {state.method === "point-buy" && (
+          <p>
+            Spend <span className="text-parchment font-bold">{POINT_BUY_TOTAL} points</span> to set scores
+            between <span className="text-parchment font-mono">8</span> and{" "}
+            <span className="text-parchment font-mono">15</span>. Higher scores cost more points. All
+            scores start at 8.
+          </p>
+        )}
+        {state.method === "manual" && (
+          <p>
+            Enter any values between <span className="text-parchment font-mono">3</span> and{" "}
+            <span className="text-parchment font-mono">20</span>. Use this for rolled stats or homebrew
+            rules.
+          </p>
+        )}
       </div>
 
       {/* Point buy remaining indicator */}

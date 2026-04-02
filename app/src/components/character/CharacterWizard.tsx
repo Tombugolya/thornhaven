@@ -63,6 +63,15 @@ export default function CharacterWizard({ onComplete, onCancel }: CharacterWizar
     }
   }, [])
 
+  // Warn on page refresh/close while wizard is open
+  useEffect(() => {
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault()
+    }
+    window.addEventListener("beforeunload", handler)
+    return () => window.removeEventListener("beforeunload", handler)
+  }, [])
+
   const handleChange = useCallback((updates: Partial<WizardState>) => {
     setState((prev) => ({ ...prev, ...updates }))
   }, [])
@@ -209,62 +218,45 @@ export default function CharacterWizard({ onComplete, onCancel }: CharacterWizar
   return (
     <div className="fixed inset-0 bg-bg-deep z-50 flex flex-col overflow-hidden">
       {/* Top bar with progress */}
-      <header className="bg-bg-base border-b border-gold/15 px-6 py-4 shrink-0">
+      <header className="bg-bg-base/90 backdrop-blur-sm border-b border-gold/15 px-6 py-4 shrink-0">
         <div className="max-w-3xl mx-auto">
-          <div className="flex items-center justify-between mb-3">
-            <h1 className="font-[family-name:var(--font-display)] text-gold text-lg tracking-wide">
-              Create Character
-            </h1>
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-gold/10 border border-gold/20 flex items-center justify-center">
+                <span className="text-gold text-sm">
+                  {state.step + 1}
+                </span>
+              </div>
+              <div>
+                <h1 className="font-[family-name:var(--font-display)] text-gold text-lg tracking-wide">
+                  {STEP_NAMES[state.step]}
+                </h1>
+                <p className="text-text-muted text-[10px] tracking-wider uppercase">
+                  Step {state.step + 1} of {STEP_NAMES.length}
+                </p>
+              </div>
+            </div>
             <button
               onClick={onCancel}
-              className="text-text-muted hover:text-parchment text-sm transition-colors cursor-pointer"
+              className="text-text-muted hover:text-parchment text-sm transition-colors cursor-pointer px-3 py-1.5 rounded-lg hover:bg-bg-surface/60"
             >
               Cancel
             </button>
           </div>
 
-          {/* Progress dots */}
-          <div className="flex items-center gap-1">
-            {STEP_NAMES.map((name, i) => {
-              const isComplete = i < state.step
-              const isCurrent = i === state.step
-              return (
-                <div key={name} className="flex items-center flex-1">
-                  <div className="flex flex-col items-center flex-1">
-                    <div
-                      className={`w-3 h-3 rounded-full transition-all duration-300 ${
-                        isCurrent
-                          ? "bg-gold shadow-[0_0_8px_rgba(201,162,39,0.4)]"
-                          : isComplete
-                            ? "bg-gold/60"
-                            : "bg-bg-elevated/60 border border-bg-elevated"
-                      }`}
-                    />
-                    <span
-                      className={`text-[10px] mt-1 tracking-wider ${
-                        isCurrent ? "text-gold" : isComplete ? "text-gold/50" : "text-text-muted/50"
-                      }`}
-                    >
-                      {name}
-                    </span>
-                  </div>
-                  {i < STEP_NAMES.length - 1 && (
-                    <div
-                      className={`h-px flex-1 mx-1 -mt-3 ${
-                        i < state.step ? "bg-gold/40" : "bg-bg-elevated/40"
-                      }`}
-                    />
-                  )}
-                </div>
-              )
-            })}
+          {/* Progress bar */}
+          <div className="h-1 bg-bg-elevated/40 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-gold/60 rounded-full transition-all duration-500 ease-out"
+              style={{ width: `${((state.step + 1) / STEP_NAMES.length) * 100}%` }}
+            />
           </div>
         </div>
       </header>
 
       {/* Step content */}
-      <main className="flex-1 overflow-y-auto">
-        <div className="max-w-3xl mx-auto px-6 py-6">
+      <main className="flex-1 overflow-y-auto bg-[radial-gradient(ellipse_at_top,_rgba(201,162,39,0.03)_0%,_transparent_70%)]">
+        <div className="max-w-3xl mx-auto px-6 py-8">
           {state.step === 0 && <RaceStep races={races} state={state} onChange={handleChange} />}
           {state.step === 1 && (
             <ClassStep classes={classes} skills={skills} state={state} onChange={handleChange} />
@@ -276,7 +268,7 @@ export default function CharacterWizard({ onComplete, onCancel }: CharacterWizar
       </main>
 
       {/* Bottom navigation */}
-      <footer className="bg-bg-base border-t border-gold/15 px-6 py-4 shrink-0">
+      <footer className="bg-bg-base/90 backdrop-blur-sm border-t border-gold/15 px-6 py-4 shrink-0">
         <div className="max-w-3xl mx-auto flex items-center justify-between">
           <button
             onClick={state.step === 0 ? onCancel : goBack}
