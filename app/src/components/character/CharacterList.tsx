@@ -167,19 +167,10 @@ export default function CharacterList({
                 <button
                   onClick={(e) => {
                     e.stopPropagation()
-                    if (confirmDelete === char.id) {
-                      handleDelete(char.id)
-                    } else {
-                      setConfirmDelete(char.id)
-                      setTimeout(() => setConfirmDelete(null), 3000)
-                    }
+                    setConfirmDelete(char.id)
                   }}
-                  className={`p-1.5 rounded transition-colors cursor-pointer ${
-                    confirmDelete === char.id
-                      ? "text-danger bg-danger/10"
-                      : "text-text-muted/0 group-hover:text-text-muted hover:text-danger hover:bg-danger/10"
-                  }`}
-                  title={confirmDelete === char.id ? "Click again to confirm" : "Delete character"}
+                  className="p-1.5 rounded transition-colors cursor-pointer text-text-muted/0 group-hover:text-text-muted hover:text-danger hover:bg-danger/10"
+                  title="Delete character"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
                 </button>
@@ -199,6 +190,41 @@ export default function CharacterList({
           </div>
         )}
       </div>
+
+      {/* Delete confirmation dialog */}
+      {confirmDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div
+            className="bg-bg-base border border-bg-elevated/50 rounded-xl p-6 max-w-sm w-full mx-6 space-y-4 shadow-2xl"
+            style={{ animation: "loadFadeIn 0.2s ease-out" }}
+          >
+            <h3 className="font-[family-name:var(--font-display)] text-gold text-lg">
+              Delete Character
+            </h3>
+            <p className="text-parchment text-sm">
+              Are you sure you want to delete{" "}
+              <span className="text-gold font-semibold">
+                {characters.find((c) => c.id === confirmDelete)?.name ?? "this character"}
+              </span>
+              ? This action cannot be undone.
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => setConfirmDelete(null)}
+                className="px-4 py-2 rounded-lg text-sm text-text-muted hover:text-parchment border border-bg-elevated/50 hover:bg-bg-surface/60 cursor-pointer transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => handleDelete(confirmDelete)}
+                className="px-4 py-2 rounded-lg text-sm text-danger bg-danger/10 border border-danger/30 hover:bg-danger/20 cursor-pointer transition-colors"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
