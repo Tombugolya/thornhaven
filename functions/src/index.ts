@@ -15,7 +15,14 @@ admin.initializeApp();
 
 // Create Express app
 const app = express();
-app.use(cors({ origin: true }));
+app.use(cors({
+  origin: [
+    "http://localhost:5173",
+    "http://localhost:4173",
+    "https://tombugolya.github.io",
+  ],
+  credentials: true,
+}));
 app.use(express.json());
 
 // --- Auth Middleware ---
