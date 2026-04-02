@@ -31,7 +31,13 @@ export default function RaceStep({ races, state, onChange }: RaceStepProps) {
       setLoadingRace(ref.index)
       try {
         const race = await fetchRace(ref.index)
-        onChange({ race, subrace: undefined })
+        // Auto-select subrace if there's only one
+        if (race.subraces.length === 1) {
+          const subrace = await fetchSubrace(race.subraces[0].index)
+          onChange({ race, subrace })
+        } else {
+          onChange({ race, subrace: undefined })
+        }
       } finally {
         setLoadingRace(null)
       }

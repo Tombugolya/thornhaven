@@ -1,6 +1,13 @@
 import { useState, useEffect, useCallback, useMemo } from "react"
 import type { WizardState, PlayerCharacter, SrdReference, SrdSkill } from "../../types/character"
-import { INITIAL_WIZARD_STATE, ABILITY_KEYS, BACKGROUNDS } from "../../types/character"
+import {
+  INITIAL_WIZARD_STATE,
+  ABILITY_KEYS,
+  BACKGROUNDS,
+  STANDARD_ARRAY,
+  POINT_BUY_COSTS,
+  POINT_BUY_TOTAL,
+} from "../../types/character"
 import { preloadCharacterCreationData } from "../../services/srd"
 import {
   computeRacialBonuses,
@@ -11,6 +18,7 @@ import {
   classSavingThrows,
   classBaseProficiencies,
   classSkillChoices,
+  pointBuyRemaining,
 } from "../../services/calculations"
 import LoadingScreen from "../LoadingScreen"
 import RaceStep from "./RaceStep"
@@ -73,9 +81,20 @@ export default function CharacterWizard({ onComplete, onCancel }: CharacterWizar
         if (choice.choose > 0 && state.selectedSkills.length !== choice.choose) return false
         return true
       }
-      case 2:
-        // Ability scores: all must be non-zero
-        return ABILITY_KEYS.every((k) => state.baseScores[k] > 0)
+      case 2: {
+        // Ability scores must be properly assigned
+        if (state.method === "standard-array") {
+          // All 6 standard array values must be used
+          const sorted = ABILITY_KEYS.map((k) => state.baseScores[k]).sort((a, b) => a - b)
+          const target = [...STANDARD_ARRAY].sort((a, b) => a - b)
+          return sorted.every((v, i) => v === target[i])
+        }
+        if (state.method === "point-buy") {
+          return pointBuyRemaining(state.baseScores, POINT_BUY_COSTS, POINT_BUY_TOTAL) >= 0
+        }
+        // Manual: all scores must be 3-20
+        return ABILITY_KEYS.every((k) => state.baseScores[k] >= 3 && state.baseScores[k] <= 20)
+      }
       case 3:
         // Name is required
         return state.name.trim().length > 0

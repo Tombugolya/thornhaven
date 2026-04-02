@@ -184,7 +184,10 @@ export default function AbilityScoreStep({ state, onChange }: AbilityScoreStepPr
                     </span>
                     <button
                       onClick={() => handleScoreChange(key, Math.min(15, base + 1))}
-                      disabled={base >= 15}
+                      disabled={
+                        base >= 15 ||
+                        remaining - ((POINT_BUY_COSTS[base + 1] ?? 0) - (POINT_BUY_COSTS[base] ?? 0)) < 0
+                      }
                       className="w-7 h-7 rounded-lg bg-bg-elevated/40 border border-bg-elevated/50 text-parchment text-sm flex items-center justify-center hover:bg-bg-elevated/60 disabled:opacity-30 cursor-pointer disabled:cursor-not-allowed transition-colors"
                     >
                       +
