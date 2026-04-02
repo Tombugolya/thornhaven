@@ -232,12 +232,15 @@ export function BroadcastProvider({
       onDisconnect(myPresenceRef).remove()
       cleanups.push(() => remove(myPresenceRef))
 
-      // Load current state for recovery
-      get(stateRef).then((snap) => {
-        const state = snap.val() as SessionState | null
-        if (state) {
-          setSessionState(state)
-          // Set initial display so PlayerView can recover
+      // Live listener on state — keeps sessionState in sync for player recovery
+      let initialLoad = true
+      onValue(stateRef, (snap) => {
+        const state = (snap.val() as SessionState) ?? null
+        setSessionState(state)
+
+        // On first load, send synthetic messages so PlayerView can recover display
+        if (initialLoad && state) {
+          initialLoad = false
           if (state.currentDisplay) {
             setLastMessage({
               ...state.currentDisplay,
@@ -251,22 +254,17 @@ export function BroadcastProvider({
             } as unknown as BroadcastMessage)
           }
           if (state.mood) {
-            // Queue mood after a tick so PlayerView processes display first
             setTimeout(() => {
-              setLastMessage((prev) => {
-                // Only set mood if we haven't gotten a real message yet
-                return (prev as unknown as Record<string, unknown>)?._recovered
-                  ? ({
-                      type: "mood",
-                      mood: state.mood!,
-                      _ts: Date.now(),
-                    } as unknown as BroadcastMessage)
-                  : prev
-              })
+              setLastMessage({
+                type: "mood",
+                mood: state.mood!,
+                _ts: Date.now(),
+              } as unknown as BroadcastMessage)
             }, 50)
           }
         }
       })
+      cleanups.push(() => off(stateRef))
 
       // Listen for new messages
       const msgQuery = query(
