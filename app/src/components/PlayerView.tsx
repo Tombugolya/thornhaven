@@ -43,40 +43,31 @@ export default function PlayerView() {
   const [activeHandout, setActiveHandout] = useState<Handout | null>(null)
   const [mood, setMood] = useState("default")
   const [campaignActive, setCampaignActive] = useState(false)
-  const [revealedTokens, setRevealedTokens] = useState<Set<string>>(new Set())
-  const [tokenPositions, setTokenPositions] = useState<Record<string, { x: number; y: number }>>({})
-  const [killedTokens, setKilledTokens] = useState<Set<string>>(new Set())
   const [victory, setVictory] = useState<string | null>(null)
-  const [tokenConditions, setTokenConditions] = useState<Record<string, string[]>>({})
-  const [activeTurnToken, setActiveTurnToken] = useState<string | null>(null)
   const [floatingNumbers, setFloatingNumbers] = useState<FloatingNumberEntry[]>([])
   const [dyingTokens, setDyingTokens] = useState<Set<string>>(new Set())
-  const recoveredRef = useRef(false)
 
-  // Recover state from Firebase on mount (reconnection support)
+  // Derive combat state from live sessionState (Firebase is source of truth)
+  const revealedTokens = useMemo(
+    () => (sessionState?.revealedTokens ? new Set(Object.keys(sessionState.revealedTokens)) : new Set<string>()),
+    [sessionState?.revealedTokens],
+  )
+  const tokenPositions = sessionState?.tokenPositions ?? {}
+  const killedTokens = useMemo(
+    () => (sessionState?.killedTokens ? new Set(Object.keys(sessionState.killedTokens)) : new Set<string>()),
+    [sessionState?.killedTokens],
+  )
+  const tokenConditions = sessionState?.tokenConditions ?? {}
+  const activeTurnToken = sessionState?.activeTurnToken ?? null
+
+  // Recover display state from sessionState on mount
+  const recoveredRef = useRef(false)
   useEffect(() => {
     if (!sessionState || recoveredRef.current) return
     recoveredRef.current = true
 
     if (sessionState.mood) setMood(sessionState.mood)
     setCampaignActive(true)
-
-    // Recover combat state
-    if (sessionState.revealedTokens) {
-      setRevealedTokens(new Set(Object.keys(sessionState.revealedTokens)))
-    }
-    if (sessionState.tokenPositions) {
-      setTokenPositions(sessionState.tokenPositions)
-    }
-    if (sessionState.tokenConditions) {
-      setTokenConditions(sessionState.tokenConditions)
-    }
-    if (sessionState.activeTurnToken) {
-      setActiveTurnToken(sessionState.activeTurnToken)
-    }
-    if (sessionState.killedTokens) {
-      setKilledTokens(new Set(Object.keys(sessionState.killedTokens)))
-    }
 
     // Recover current display
     if (sessionState.currentMap) {
@@ -123,12 +114,7 @@ export default function PlayerView() {
         setScene(null)
         setActiveMap(null)
         setActiveHandout(null)
-        setRevealedTokens(new Set())
-        setTokenPositions({})
-        setKilledTokens(new Set())
         setVictory(null)
-        setTokenConditions({})
-        setActiveTurnToken(null)
         setFloatingNumbers([])
         setDyingTokens(new Set())
         setTransitioning(false)
@@ -145,12 +131,7 @@ export default function PlayerView() {
           setScene(null)
           setActiveMap(map)
           setActiveHandout(null)
-          setRevealedTokens(new Set())
-          setTokenPositions({})
-          setKilledTokens(new Set())
           setVictory(null)
-          setTokenConditions({})
-          setActiveTurnToken(null)
           setFloatingNumbers([])
           setDyingTokens(new Set())
           setTransitioning(false)
@@ -159,66 +140,23 @@ export default function PlayerView() {
       return
     }
 
-    // Token reveal — add a token to current map
-    if (lastMessage.type === "reveal") {
-      setRevealedTokens((prev) => new Set([...prev, lastMessage.tokenId]))
-      return
-    }
-
-    // Token move — update position from DM
-    if (lastMessage.type === "move") {
-      setTokenPositions((prev) => ({
-        ...prev,
-        [lastMessage.tokenId]: { x: lastMessage.x, y: lastMessage.y },
-      }))
-      return
-    }
-
-    // Token kill — play death animation, then show permanent skull
+    // Token kill — play death animation (permanent dead state comes from sessionState)
     if (lastMessage.type === "kill") {
       const tokenId = lastMessage.tokenId
       setDyingTokens((prev) => new Set([...prev, tokenId]))
-      // After animation, transition to permanent dead state (skull stays on map)
       setTimeout(() => {
         setDyingTokens((prev) => {
           const next = new Set(prev)
           next.delete(tokenId)
           return next
         })
-        setKilledTokens((prev) => new Set([...prev, tokenId]))
       }, 1200)
-      return
-    }
-
-    // Token revive — remove from dead state
-    if (lastMessage.type === "revive") {
-      const tokenId = lastMessage.tokenId
-      setKilledTokens((prev) => {
-        const next = new Set(prev)
-        next.delete(tokenId)
-        return next
-      })
       return
     }
 
     // Battle won!
     if (lastMessage.type === "battleWon") {
       setVictory(lastMessage.encounterName || "Battle")
-      return
-    }
-
-    // Conditions update (prone, concentrating, stunned, frightened)
-    if (lastMessage.type === "conditions") {
-      setTokenConditions((prev) => ({
-        ...prev,
-        [lastMessage.tokenId]: lastMessage.conditions || [],
-      }))
-      return
-    }
-
-    // Active turn
-    if (lastMessage.type === "activeTurn") {
-      setActiveTurnToken(lastMessage.tokenId || null)
       return
     }
 
@@ -246,7 +184,6 @@ export default function PlayerView() {
           setScene(null)
           setActiveMap(null)
           setActiveHandout(handout)
-          setRevealedTokens(new Set())
           setVictory(null)
           setTransitioning(false)
         }, 600)
@@ -272,7 +209,6 @@ export default function PlayerView() {
       setTimeout(() => {
         setActiveMap(null)
         setActiveHandout(null)
-        setRevealedTokens(new Set())
         setVictory(null)
         setScene(sceneData)
         setTransitioning(false)
@@ -329,7 +265,6 @@ export default function PlayerView() {
           role="player"
           fullscreen
           onTokenMove={(tokenId, x, y) => {
-            setTokenPositions((prev) => ({ ...prev, [tokenId]: { x, y } }))
             showToPlayer("move", null, { tokenId, x, y })
           }}
           proneTokens={proneTokens}
