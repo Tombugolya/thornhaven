@@ -295,12 +295,12 @@ export interface PlayerCharacter {
   name: string
   race: string
   raceName: string
-  subrace?: string
-  subraceName?: string
+  subrace?: string | null
+  subraceName?: string | null
   class: string
   className: string
-  subclass?: string
-  subclassName?: string
+  subclass?: string | null
+  subclassName?: string | null
   level: number
   background: string
   backgroundName: string
@@ -338,7 +338,7 @@ export interface PlayerCharacter {
   gold: number
 
   // Spellcasting
-  spellcastingAbility?: string
+  spellcastingAbility?: string | null
   cantrips: string[]
   spells: string[]
 
