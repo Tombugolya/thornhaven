@@ -1,8 +1,7 @@
 import { useState, useEffect } from "react"
 import { Plus, Trash2, Shield, Heart, Zap, LogOut } from "lucide-react"
 import { ref, onValue, off, remove, set, push } from "firebase/database"
-import { ref as storageRef, uploadString, getDownloadURL } from "firebase/storage"
-import { db, storage } from "../../firebase"
+import { db } from "../../firebase"
 import type { PlayerCharacter } from "../../types/character"
 import CharacterWizard from "./CharacterWizard"
 import Particles from "../Particles"
@@ -42,17 +41,9 @@ export default function CharacterList({
     if (!charId) return
     const charWithId: PlayerCharacter = { ...character, id: charId, playerId: userId }
 
-    // Upload portrait to Firebase Storage if one was provided
+    // Store portrait as data URL directly in the database
     if (portraitDataUrl) {
-      try {
-        const portraitRef = storageRef(storage, `portraits/${userId}/${charId}.jpg`)
-        await uploadString(portraitRef, portraitDataUrl, "data_url")
-        const downloadUrl = await getDownloadURL(portraitRef)
-        charWithId.portraitUrl = downloadUrl
-      } catch {
-        // Portrait upload failed - save the character without the portrait
-        console.warn("Portrait upload failed, saving character without portrait")
-      }
+      charWithId.portraitUrl = portraitDataUrl
     }
 
     await set(charRef, charWithId)

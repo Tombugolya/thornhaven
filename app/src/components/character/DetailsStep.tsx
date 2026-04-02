@@ -3,6 +3,45 @@ import type { WizardState } from "../../types/character"
 import { BACKGROUNDS, ALIGNMENTS, STARTING_GOLD } from "../../types/character"
 
 const LEVEL_OPTIONS = Array.from({ length: 20 }, (_, i) => i + 1)
+
+function equipmentIcon(label: string): React.ReactElement {
+  const lower = label.toLowerCase()
+  if (lower.includes("pack") || lower.includes("kit")) {
+    // Backpack
+    return (
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M6 20V8a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v12" />
+        <rect x="4" y="10" width="16" height="10" rx="2" />
+        <path d="M9 4V2M15 4V2" />
+      </svg>
+    )
+  }
+  if (lower.includes("armor") || lower.includes("mail") || lower.includes("shield") || lower.includes("leather")) {
+    // Shield
+    return (
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M12 2l8 4v6c0 5.5-3.8 10-8 12-4.2-2-8-6.5-8-12V6l8-4z" />
+      </svg>
+    )
+  }
+  if (lower.includes("bow") || lower.includes("arrow") || lower.includes("bolt") || lower.includes("crossbow")) {
+    // Bow
+    return (
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M18 4c-4 0-8 2-10 6-2 4-2 8 0 10" />
+        <path d="M4 20L20 4" />
+      </svg>
+    )
+  }
+  // Default: sword
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M14 4l6 6-8 8-6-6 8-8z" />
+      <path d="M4 20l4-4" />
+      <path d="M14 10l-2 2" />
+    </svg>
+  )
+}
 const MAX_PORTRAIT_BYTES = 2 * 1024 * 1024 // 2 MB
 const ACCEPTED_TYPES = ["image/jpeg", "image/png", "image/webp"]
 
@@ -32,11 +71,33 @@ export default function DetailsStep({ state, onChange }: DetailsStepProps) {
 
       setPortraitError(null)
 
+      // Compress and resize the image to keep database size reasonable
       const reader = new FileReader()
       reader.onload = () => {
-        if (typeof reader.result === "string") {
-          onChange({ portraitDataUrl: reader.result })
+        if (typeof reader.result !== "string") return
+        const img = new Image()
+        img.onload = () => {
+          const maxDim = 256
+          let { width, height } = img
+          if (width > maxDim || height > maxDim) {
+            if (width > height) {
+              height = Math.round((height * maxDim) / width)
+              width = maxDim
+            } else {
+              width = Math.round((width * maxDim) / height)
+              height = maxDim
+            }
+          }
+          const canvas = document.createElement("canvas")
+          canvas.width = width
+          canvas.height = height
+          const ctx = canvas.getContext("2d")
+          if (!ctx) return
+          ctx.drawImage(img, 0, 0, width, height)
+          const compressed = canvas.toDataURL("image/jpeg", 0.7)
+          onChange({ portraitDataUrl: compressed })
         }
+        img.src = reader.result
       }
       reader.readAsDataURL(file)
     },
@@ -411,6 +472,9 @@ export default function DetailsStep({ state, onChange }: DetailsStepProps) {
                                   isSelected ? "border-gold bg-gold" : "border-text-muted/40"
                                 }`}
                               />
+                              <span className={`shrink-0 ${isSelected ? "text-gold" : "text-text-muted"}`}>
+                                {equipmentIcon(label)}
+                              </span>
                               <span className="font-medium">{label}</span>
                             </div>
                           </button>

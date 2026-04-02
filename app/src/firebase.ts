@@ -1,7 +1,6 @@
 import { initializeApp } from "firebase/app"
 import { getDatabase, type Database } from "firebase/database"
 import { getAuth, type Auth } from "firebase/auth"
-import { getStorage, type FirebaseStorage } from "firebase/storage"
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -16,6 +15,3 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig)
 export const db: Database = getDatabase(app)
 export const auth: Auth = getAuth(app)
-// NOTE: Firebase Storage rules must be configured in the Firebase console
-// to allow authenticated uploads to portraits/{userId}/{characterId}.jpg
-export const storage: FirebaseStorage = getStorage(app)
