@@ -105,8 +105,7 @@ export default function CharacterWizard({ onComplete, onCancel }: CharacterWizar
         return ABILITY_KEYS.every((k) => state.baseScores[k] >= 3 && state.baseScores[k] <= 20)
       }
       case 3:
-        // Name is required
-        return state.name.trim().length > 0
+        return state.name.trim().length > 0 && state.background.length > 0 && state.alignment.length > 0
       case 4:
         return true
       default:
