@@ -331,7 +331,7 @@ export default function AbilityScoreStep({ state, onChange }: AbilityScoreStepPr
               {/* Ability icon + name */}
               <div className="w-36 shrink-0 flex items-center gap-2">
                 <span className="text-gold/70 shrink-0">{abilityIcons[key]}</span>
-                <div className="truncate">
+                <div className="truncate" title={`${ABILITY_LABELS[key]} (${key.toUpperCase()})`}>
                   <span className="font-[family-name:var(--font-display)] text-parchment text-sm">
                     {ABILITY_LABELS[key]}
                   </span>
