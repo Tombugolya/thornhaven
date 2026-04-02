@@ -53,6 +53,11 @@ interface KillMessage extends BaseMessage {
   tokenId: string
 }
 
+interface ReviveMessage extends BaseMessage {
+  type: "revive"
+  tokenId: string
+}
+
 interface ConditionsMessage extends BaseMessage {
   type: "conditions"
   tokenId: string
@@ -102,6 +107,7 @@ export type BroadcastMessage =
   | RevealMessage
   | MoveMessage
   | KillMessage
+  | ReviveMessage
   | ConditionsMessage
   | ActiveTurnMessage
   | MoodMessage

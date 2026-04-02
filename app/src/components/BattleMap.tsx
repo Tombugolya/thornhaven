@@ -38,6 +38,7 @@ interface TokenProps {
   prone: boolean
   isActiveTurn: boolean
   dying: boolean
+  dead: boolean
   conditions?: string[]
 }
 
@@ -55,6 +56,7 @@ const Token = memo(function Token({
   prone,
   isActiveTurn,
   dying,
+  dead,
   conditions,
 }: TokenProps) {
   const resolvedConditions = conditions || EMPTY_CONDITIONS
@@ -68,7 +70,7 @@ const Token = memo(function Token({
     }
   }, [revealed, delay])
 
-  if (!revealed && !dying) return null
+  if (!revealed && !dying && !dead) return null
 
   const x = pos?.x ?? token.x
   const y = pos?.y ?? token.y
@@ -78,17 +80,17 @@ const Token = memo(function Token({
   return (
     <g
       style={{
-        opacity: dying ? 0 : visible ? 1 : 0,
-        transform: dying ? "scale(0.3)" : visible ? "scale(1)" : "scale(0.3)",
+        opacity: dying ? 0 : dead ? 0.7 : visible ? 1 : 0,
+        transform: dying ? "scale(0.3)" : visible || dead ? "scale(1)" : "scale(0.3)",
         transformOrigin: `${x}px ${y}px`,
         transition: isDragging
           ? "none"
           : dying
             ? "opacity 1.2s ease-out, transform 1.2s ease-out, filter 0.6s ease-out"
             : "opacity 0.8s ease-out, transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)",
-        cursor: draggable ? (isDragging ? "grabbing" : "grab") : "default",
-        pointerEvents: draggable && !dying ? "auto" : "none",
-        filter: dying ? "grayscale(1)" : "none",
+        cursor: draggable && !dead ? (isDragging ? "grabbing" : "grab") : "default",
+        pointerEvents: draggable && !dying && !dead ? "auto" : "none",
+        filter: dying || dead ? "grayscale(1)" : "none",
       }}
       onPointerDown={(e) => {
         if (!draggable) return
@@ -109,7 +111,7 @@ const Token = memo(function Token({
       }}
     >
       {/* Active turn ring */}
-      {isActiveTurn && !dying && (
+      {isActiveTurn && !dying && !dead && (
         <circle
           cx={x}
           cy={y}
@@ -140,7 +142,7 @@ const Token = memo(function Token({
         </circle>
       )}
       {/* Reveal glow */}
-      {!token.ally && !isDragging && !dying && (
+      {!token.ally && !isDragging && !dying && !dead && (
         <circle cx={x} cy={y} r={r + 12} fill={glowColor} opacity="0.15">
           <animate
             attributeName="r"
@@ -172,14 +174,16 @@ const Token = memo(function Token({
         cy={y}
         rx={r}
         ry={prone ? r * 0.55 : r}
-        fill={prone ? `${token.color}99` : dying ? "#666" : token.color}
+        fill={prone ? `${token.color}99` : dying || dead ? "#666" : token.color}
         opacity={isDragging ? 1 : 0.9}
-        stroke={isDragging ? "#c9a227" : dying ? "#888" : token.ally ? token.color : "#ff6666"}
+        stroke={
+          isDragging ? "#c9a227" : dying || dead ? "#888" : token.ally ? token.color : "#ff6666"
+        }
         strokeWidth={isDragging ? 3 : token.ally ? 1.5 : 2.5}
         style={{ transition: "ry 0.4s ease-in-out" }}
       />
       {/* Death skull overlay */}
-      {dying && (
+      {(dying || dead) && (
         <text
           x={x}
           y={y + 2}
@@ -192,7 +196,7 @@ const Token = memo(function Token({
         </text>
       )}
       {/* Initials */}
-      {!dying && (
+      {!dying && !dead && (
         <text
           x={x}
           y={y + 1}
@@ -755,6 +759,7 @@ interface BattleMapProps {
   proneTokens?: Set<string>
   activeTurnToken?: string | null
   dyingTokens?: Set<string>
+  deadTokens?: Set<string>
   floatingNumbers?: FloatingNumberEntry[]
   tokenConditions?: Record<string, string[]>
 }
@@ -769,6 +774,7 @@ export default function BattleMap({
   proneTokens = new Set(),
   activeTurnToken = null,
   dyingTokens = new Set(),
+  deadTokens = new Set(),
   floatingNumbers = [],
   tokenConditions = {},
 }: BattleMapProps) {
@@ -876,7 +882,11 @@ export default function BattleMap({
           token={token}
           pos={getPos(id, token)}
           revealed={
-            token.autoReveal || revealedTokens.has(id) || dyingTokens.has(id) || role === "dm"
+            token.autoReveal ||
+            revealedTokens.has(id) ||
+            dyingTokens.has(id) ||
+            deadTokens.has(id) ||
+            role === "dm"
           }
           delay={token.autoReveal ? 800 : 200}
           draggable={isDraggable(id, token)}
@@ -887,6 +897,7 @@ export default function BattleMap({
           prone={proneTokens.has(id)}
           isActiveTurn={activeTurnToken === id}
           dying={dyingTokens.has(id)}
+          dead={deadTokens.has(id)}
           conditions={tokenConditions[id] || EMPTY_CONDITIONS}
         />
       ))}

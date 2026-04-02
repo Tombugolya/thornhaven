@@ -76,6 +76,9 @@ export default function PlayerView() {
     if (sessionState.activeTurnToken) {
       setActiveTurnToken(sessionState.activeTurnToken as string)
     }
+    if (sessionState.killedTokens) {
+      setKilledTokens(new Set(Object.keys(sessionState.killedTokens as Record<string, unknown>)))
+    }
 
     // Recover current display
     if (sessionState.currentMap) {
@@ -172,11 +175,11 @@ export default function PlayerView() {
       return
     }
 
-    // Token kill — play death animation, then remove
+    // Token kill — play death animation, then show permanent skull
     if (lastMessage.type === "kill") {
       const tokenId = lastMessage.tokenId
       setDyingTokens((prev) => new Set([...prev, tokenId]))
-      // After animation, fully remove
+      // After animation, transition to permanent dead state (skull stays on map)
       setTimeout(() => {
         setDyingTokens((prev) => {
           const next = new Set(prev)
@@ -185,6 +188,17 @@ export default function PlayerView() {
         })
         setKilledTokens((prev) => new Set([...prev, tokenId]))
       }, 1200)
+      return
+    }
+
+    // Token revive — remove from dead state
+    if (lastMessage.type === "revive") {
+      const tokenId = lastMessage.tokenId
+      setKilledTokens((prev) => {
+        const next = new Set(prev)
+        next.delete(tokenId)
+        return next
+      })
       return
     }
 
@@ -267,11 +281,8 @@ export default function PlayerView() {
     }
   }, [lastMessage])
 
-  // Build visible tokens: revealed minus killed (dying tokens stay visible via dyingTokens prop)
-  const visibleTokens = useMemo(
-    () => new Set([...revealedTokens].filter((id) => !killedTokens.has(id))),
-    [revealedTokens, killedTokens],
-  )
+  // Build visible tokens: all revealed (dead tokens stay visible with skull)
+  const visibleTokens = revealedTokens
 
   // Derive proneTokens from tokenConditions
   const proneTokens = useMemo(
@@ -325,6 +336,7 @@ export default function PlayerView() {
           proneTokens={proneTokens}
           activeTurnToken={activeTurnToken}
           dyingTokens={dyingTokens}
+          deadTokens={killedTokens}
           floatingNumbers={floatingNumbers}
           tokenConditions={tokenConditions}
         />

@@ -77,7 +77,9 @@ function getStateUpdates(
     case "move":
       return { [`tokenPositions/${extra.tokenId}`]: { x: extra.x, y: extra.y } }
     case "kill":
-      return { [`revealedTokens/${extra.tokenId}`]: null }
+      return { [`killedTokens/${extra.tokenId}`]: true }
+    case "revive":
+      return { [`killedTokens/${extra.tokenId}`]: null }
     case "conditions":
       return { [`tokenConditions/${extra.tokenId}`]: extra.conditions || null }
     case "activeTurn":
@@ -90,6 +92,7 @@ function getStateUpdates(
       return {
         [`completedEncounters/${extra.encounterName || id}`]: true,
         revealedTokens: null,
+        killedTokens: null,
         tokenPositions: null,
         tokenConditions: null,
         activeTurnToken: null,

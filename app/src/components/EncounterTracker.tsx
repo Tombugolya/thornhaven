@@ -14,7 +14,6 @@ import {
   Zap,
   Map,
   Eye,
-  MonitorUp,
   PersonStanding,
   Brain,
   CircleSlash,
@@ -97,71 +96,6 @@ function HPBar({ current, max }: { current: number; max: number }) {
   )
 }
 
-function RevealButton({ tokenId, label }: { tokenId: string; label: string }) {
-  const { showToPlayer, playerCount } = useBroadcast()
-  const [sent, setSent] = useState(false)
-
-  if (playerCount === 0) return null
-
-  const handleClick = (e: React.MouseEvent) => {
-    e.stopPropagation()
-    showToPlayer("reveal", null, { tokenId })
-    setSent(true)
-  }
-
-  return (
-    <button
-      onClick={handleClick}
-      className={`
-        inline-flex items-center gap-1 px-2 py-1 rounded text-[10px] font-medium
-        transition-all duration-200 cursor-pointer shrink-0
-        ${
-          sent
-            ? "bg-purple-500/20 text-purple-400 border border-purple-500/30"
-            : "bg-purple-500/10 text-purple-400/70 border border-purple-500/15 hover:bg-purple-500/20 hover:text-purple-400"
-        }
-      `}
-      title={`Reveal ${label} on player map`}
-    >
-      <Eye className="w-3 h-3" />
-      {sent ? "Shown" : "Reveal"}
-    </button>
-  )
-}
-
-export function MapButton({ encounterId }: { encounterId: string }) {
-  const { campaign } = useCampaign()
-  const { showToPlayer, playerCount } = useBroadcast()
-  const [sent, setSent] = useState(false)
-
-  if (playerCount === 0 || !campaign.battleMaps[encounterId]) return null
-
-  const handleClick = (e: React.MouseEvent) => {
-    e.stopPropagation()
-    showToPlayer("map", encounterId)
-    setSent(true)
-  }
-
-  return (
-    <button
-      onClick={handleClick}
-      className={`
-        inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium
-        transition-all duration-200 cursor-pointer
-        ${
-          sent
-            ? "bg-info/20 text-info border border-info/30"
-            : "bg-info/10 text-info/70 border border-info/15 hover:bg-info/20 hover:text-info"
-        }
-      `}
-      title="Show battle map to player"
-    >
-      <Map className="w-3.5 h-3.5" />
-      {sent ? "Map Showing" : "Show Map"}
-    </button>
-  )
-}
-
 function ConditionToggles({
   conditions = [],
   onToggle,
@@ -204,6 +138,9 @@ interface CombatantRowProps {
   onInitiativeChange: (val: number) => void
   onConditionToggle: (condition: string) => void
   isActiveTurn: boolean
+  isRevealed?: boolean
+  onRevealToggle?: () => void
+  hasToken?: boolean
 }
 
 function CombatantRow({
@@ -212,6 +149,9 @@ function CombatantRow({
   onInitiativeChange,
   onConditionToggle,
   isActiveTurn,
+  isRevealed,
+  onRevealToggle,
+  hasToken,
 }: CombatantRowProps) {
   const [damageInput, setDamageInput] = useState("")
   const isDead = combatant.hp <= 0
@@ -281,7 +221,23 @@ function CombatantRow({
                 Ally
               </span>
             )}
-            {!combatant.isAlly && <RevealButton tokenId={combatant.id} label={combatant.name} />}
+            {hasToken && onRevealToggle && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onRevealToggle()
+                }}
+                className={`inline-flex items-center gap-1 px-2 py-1 rounded text-[10px] font-medium transition-all cursor-pointer shrink-0 ${
+                  isRevealed
+                    ? "bg-purple-500/20 text-purple-400 border border-purple-500/30"
+                    : "bg-purple-500/10 text-purple-400/70 border border-purple-500/15 hover:bg-purple-500/20"
+                }`}
+                title={isRevealed ? "Revealed to player" : "Reveal on player map"}
+              >
+                <Eye className="w-3 h-3" />
+                {isRevealed ? "Shown" : "Reveal"}
+              </button>
+            )}
           </div>
           <div className="flex items-center gap-3 text-xs text-text-muted">
             <span className="flex items-center gap-1">
@@ -337,222 +293,9 @@ function CombatantRow({
   )
 }
 
-interface MapControlPanelProps {
-  encounter: Encounter
-  activeTurnId: string | null
-  proneIds: Set<string>
-  tokenConditions?: Record<string, string[]>
-}
-
-function MapControlPanel({
-  encounter,
-  activeTurnId,
-  proneIds,
-  tokenConditions = {},
-}: MapControlPanelProps) {
-  const { campaign } = useCampaign()
-  const { showToPlayer, lastMessage, playerCount } = useBroadcast()
-  const map = campaign.battleMaps[encounter.id]
-  const [mapShowing, setMapShowing] = useState(false)
-  const [revealed, setRevealed] = useState<Set<string>>(new Set())
-  const [killed, setKilled] = useState<Set<string>>(new Set())
-  const [tokenPositions, setTokenPositions] = useState<Record<string, { x: number; y: number }>>({})
-
-  // Listen for player moves — must be before any early return
-  useEffect(() => {
-    if (lastMessage?.type === "move") {
-      setTokenPositions((prev) => ({
-        ...prev,
-        [lastMessage.tokenId]: { x: lastMessage.x, y: lastMessage.y },
-      }))
-    }
-  }, [lastMessage])
-
-  if (!map || playerCount === 0) return null
-
-  const enemies = Object.entries(map.tokens).filter(([, t]) => !t.ally)
-
-  const handleShowMap = () => {
-    showToPlayer("map", encounter.id)
-    setMapShowing(true)
-    setRevealed(new Set())
-    setKilled(new Set())
-    setTokenPositions({})
-  }
-
-  const handleReveal = (tokenId: string) => {
-    showToPlayer("reveal", null, { tokenId })
-    setRevealed((prev) => new Set([...prev, tokenId]))
-  }
-
-  const handleRevealAll = () => {
-    enemies.forEach(([id]) => {
-      showToPlayer("reveal", null, { tokenId: id })
-    })
-    setRevealed(new Set(enemies.map(([id]) => id)))
-  }
-
-  const handleKill = (tokenId: string) => {
-    const newKilled = new Set([...killed, tokenId])
-    setKilled(newKilled)
-    showToPlayer("kill", null, { tokenId })
-
-    // Check if all enemies are dead → victory!
-    if (newKilled.size === enemies.length) {
-      setTimeout(() => {
-        showToPlayer("battleWon", null, { encounterName: encounter.name })
-      }, 800)
-    }
-  }
-
-  const handleProne = (tokenId: string) => {
-    const isProne = proneIds.has(tokenId)
-    const currentConds = tokenConditions[tokenId] || []
-    const newConds = isProne
-      ? currentConds.filter((c) => c !== "prone")
-      : [...currentConds, "prone"]
-    showToPlayer("conditions", null, { tokenId, conditions: newConds })
-  }
-
-  const handleTokenMove = (tokenId: string, x: number, y: number) => {
-    setTokenPositions((prev) => ({ ...prev, [tokenId]: { x, y } }))
-    showToPlayer("move", null, { tokenId, x, y })
-  }
-
-  // Build revealed set excluding killed
-  const visibleTokens = useMemo(
-    () => new Set([...revealed].filter((id) => !killed.has(id))),
-    [revealed, killed],
-  )
-
-  return (
-    <div className="bg-info/5 border border-info/20 rounded-xl p-4 space-y-3">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Map className="w-4 h-4 text-info" />
-          <span className="text-sm font-semibold text-info">Player Map Controls</span>
-        </div>
-        <div className="flex items-center gap-2">
-          {mapShowing && enemies.length > 0 && (
-            <button
-              onClick={handleRevealAll}
-              className="flex items-center gap-1 px-2 py-1 rounded text-[10px] font-medium bg-purple-500/15 text-purple-400 border border-purple-500/20 hover:bg-purple-500/25 transition-colors cursor-pointer"
-            >
-              <Eye className="w-3 h-3" />
-              Reveal All
-            </button>
-          )}
-          <button
-            onClick={handleShowMap}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer ${
-              mapShowing
-                ? "bg-info/20 text-info border border-info/30"
-                : "bg-info/10 text-info/80 border border-info/20 hover:bg-info/20 hover:text-info"
-            }`}
-          >
-            <MonitorUp className="w-3.5 h-3.5" />
-            {mapShowing ? "Map Live" : "Show Map to Player"}
-          </button>
-        </div>
-      </div>
-
-      {mapShowing && (
-        <>
-          {/* DM Map Preview — drag tokens here! */}
-          <div className="text-[10px] text-text-muted uppercase tracking-wider">
-            Drag tokens to move them — both sides see changes in real-time
-          </div>
-          <BattleMap
-            map={map}
-            revealedTokens={visibleTokens}
-            tokenPositions={tokenPositions}
-            role="dm"
-            fullscreen={false}
-            onTokenMove={handleTokenMove}
-            proneTokens={proneIds}
-            activeTurnToken={activeTurnId}
-            tokenConditions={tokenConditions}
-          />
-
-          {/* Enemy controls */}
-          <div className="grid grid-cols-2 gap-2">
-            {enemies.map(([id, token]) => {
-              const isRevealed = revealed.has(id)
-              const isDead = killed.has(id)
-              const isProne = proneIds.has(id)
-              return (
-                <div
-                  key={id}
-                  className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-left transition-all ${
-                    isDead
-                      ? "bg-danger/5 border-danger/20 opacity-50"
-                      : isRevealed
-                        ? "bg-purple-500/10 border-purple-500/25"
-                        : "bg-bg-base/50 border-bg-elevated/40"
-                  }`}
-                >
-                  <div
-                    className="w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-bold shrink-0"
-                    style={{
-                      backgroundColor: isDead ? "#c0392b22" : token.color + "22",
-                      color: isDead ? "#c0392b" : token.color,
-                      border: `2px solid ${isDead ? "#c0392b" : token.color}44`,
-                    }}
-                  >
-                    {isDead ? <Skull className="w-3 h-3" /> : token.initials}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div
-                      className={`text-xs font-medium ${isDead ? "text-danger line-through" : isRevealed ? "text-parchment" : "text-parchment/60"}`}
-                    >
-                      {token.label}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    {!isRevealed && !isDead && (
-                      <button
-                        onClick={() => handleReveal(id)}
-                        className="px-1.5 py-0.5 rounded text-[9px] font-medium bg-purple-500/15 text-purple-400 hover:bg-purple-500/25 cursor-pointer"
-                      >
-                        Reveal
-                      </button>
-                    )}
-                    {isRevealed && !isDead && (
-                      <>
-                        <button
-                          onClick={() => handleProne(id)}
-                          title="Toggle prone — token flattens on map"
-                          className={`px-1.5 py-0.5 rounded text-[9px] font-medium cursor-pointer flex items-center gap-0.5 transition-all ${
-                            isProne
-                              ? "bg-orange-500/20 text-orange-400 border border-orange-500/30"
-                              : "bg-orange-500/10 text-orange-400/60 hover:bg-orange-500/15 border border-transparent"
-                          }`}
-                        >
-                          <PersonStanding className="w-2.5 h-2.5" /> Prone
-                        </button>
-                        <button
-                          onClick={() => handleKill(id)}
-                          className="px-1.5 py-0.5 rounded text-[9px] font-medium bg-danger/15 text-danger-light hover:bg-danger/25 cursor-pointer flex items-center gap-0.5"
-                        >
-                          <Skull className="w-2.5 h-2.5" /> Kill
-                        </button>
-                      </>
-                    )}
-                    {isDead && <span className="text-[9px] text-danger">Dead</span>}
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        </>
-      )}
-    </div>
-  )
-}
-
 function EncounterPanel({ encounter, campaignId }: { encounter: Encounter; campaignId: string }) {
   const [open, setOpen] = useState(false)
-  const { showToPlayer, playerCount } = useBroadcast()
+  const { showToPlayer, playerCount, lastMessage, sessionState } = useBroadcast()
   const { campaign } = useCampaign()
   const mapExists = !!campaign.battleMaps[encounter.id]
 
@@ -624,6 +367,33 @@ function EncounterPanel({ encounter, campaignId }: { encounter: Encounter; campa
     `dm:${campaignId}:encounter:${encounter.id}:activeTurn`,
     null,
   )
+  const [revealedTokenIds, setRevealedTokenIds] = usePersistedState<string[]>(
+    `dm:${campaignId}:encounter:${encounter.id}:revealed`,
+    [],
+  )
+  const [mapShowing, setMapShowing] = usePersistedState<boolean>(
+    `dm:${campaignId}:encounter:${encounter.id}:mapShowing`,
+    false,
+  )
+  const [tokenPositions, setTokenPositions] = useState<Record<string, { x: number; y: number }>>({})
+
+  // Listen for player moves
+  useEffect(() => {
+    if (lastMessage?.type === "move") {
+      setTokenPositions((prev) => ({
+        ...prev,
+        [lastMessage.tokenId]: { x: lastMessage.x, y: lastMessage.y },
+      }))
+    }
+  }, [lastMessage])
+
+  // DM recovery on mount — recover tokenPositions from sessionState
+  useEffect(() => {
+    if (sessionState?.tokenPositions && mapShowing) {
+      setTokenPositions(sessionState.tokenPositions as Record<string, { x: number; y: number }>)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []) // only on mount
 
   // Map combatant IDs → map token IDs. Enemies match directly; allies use npcId.
   const toTokenId = useCallback(
@@ -641,21 +411,41 @@ function EncounterPanel({ encounter, campaignId }: { encounter: Encounter; campa
     setCombatants(defaultCombatants())
     setRound(1)
     setActiveTurnId(null)
-  }, [encounter, setCombatants, setRound, setActiveTurnId])
+    setRevealedTokenIds([])
+    setMapShowing(false)
+    setTokenPositions({})
+  }, [encounter, setCombatants, setRound, setActiveTurnId, setRevealedTokenIds, setMapShowing])
 
   const updateHp = useCallback(
     (id: string, delta: number) => {
-      setCombatants((prev) =>
-        prev.map((c) =>
-          c.id === id ? { ...c, hp: Math.max(0, Math.min(c.maxHp, c.hp + delta)) } : c,
-        ),
-      )
-      // Broadcast floating damage number if map is live and players connected
+      const combatant = combatants.find((c) => c.id === id)
+      if (!combatant) return
+      const oldHp = combatant.hp
+      const newHp = Math.max(0, Math.min(combatant.maxHp, oldHp + delta))
+
+      setCombatants((prev) => prev.map((c) => (c.id === id ? { ...c, hp: newHp } : c)))
+
       if (playerCount > 0 && mapExists) {
-        showToPlayer("damage", null, { tokenId: toTokenId(id), value: delta })
+        const tokenId = toTokenId(id)
+        showToPlayer("damage", null, { tokenId, value: delta })
+
+        if (oldHp > 0 && newHp <= 0) {
+          showToPlayer("kill", null, { tokenId })
+          const allEnemiesDead = combatants
+            .filter((c) => !c.isAlly && !c.isPC)
+            .every((c) => (c.id === id ? true : c.hp <= 0))
+          if (allEnemiesDead) {
+            setTimeout(() => {
+              showToPlayer("battleWon", null, { encounterName: encounter.name })
+            }, 800)
+          }
+        }
+        if (oldHp <= 0 && newHp > 0) {
+          showToPlayer("revive", null, { tokenId })
+        }
       }
     },
-    [setCombatants, playerCount, mapExists, showToPlayer, toTokenId],
+    [combatants, setCombatants, playerCount, mapExists, showToPlayer, toTokenId, encounter.name],
   )
 
   const updateInitiative = useCallback(
@@ -684,6 +474,41 @@ function EncounterPanel({ encounter, campaignId }: { encounter: Encounter; campa
       }
     },
     [combatants, setCombatants, playerCount, mapExists, showToPlayer, toTokenId],
+  )
+
+  const handleRevealToggle = useCallback(
+    (combatantId: string) => {
+      const tokenId = toTokenId(combatantId)
+      if (!revealedTokenIds.includes(tokenId)) {
+        showToPlayer("reveal", null, { tokenId })
+        setRevealedTokenIds((prev) => [...prev, tokenId])
+      }
+    },
+    [toTokenId, revealedTokenIds, showToPlayer, setRevealedTokenIds],
+  )
+
+  const handleShowMap = useCallback(() => {
+    showToPlayer("map", encounter.id)
+    setMapShowing(true)
+    setRevealedTokenIds([])
+    setTokenPositions({})
+  }, [showToPlayer, encounter.id, setMapShowing, setRevealedTokenIds])
+
+  const handleRevealAll = useCallback(() => {
+    if (!map) return
+    const enemyIds = Object.entries(map.tokens)
+      .filter(([, t]) => !t.ally)
+      .map(([id]) => id)
+    enemyIds.forEach((id) => showToPlayer("reveal", null, { tokenId: id }))
+    setRevealedTokenIds(enemyIds)
+  }, [map, showToPlayer, setRevealedTokenIds])
+
+  const handleTokenMove = useCallback(
+    (tokenId: string, x: number, y: number) => {
+      setTokenPositions((prev) => ({ ...prev, [tokenId]: { x, y } }))
+      showToPlayer("move", null, { tokenId, x, y })
+    },
+    [showToPlayer],
   )
 
   const sorted = useMemo(
@@ -723,7 +548,7 @@ function EncounterPanel({ encounter, campaignId }: { encounter: Encounter; campa
     }
   }, [sorted, activeTurnId, playerCount, mapExists, showToPlayer, toTokenId])
 
-  // Collect conditions per token for passing to MapControlPanel / BattleMap
+  // Collect conditions per token for passing to BattleMap
   // Uses map token IDs so conditions render on the correct tokens
   const { tokenConditions, proneIds } = useMemo(() => {
     const conditions: Record<string, string[]> = {}
@@ -736,6 +561,12 @@ function EncounterPanel({ encounter, campaignId }: { encounter: Encounter; campa
     })
     return { tokenConditions: conditions, proneIds: prone }
   }, [combatants, toTokenId])
+
+  const revealedSet = useMemo(() => new Set(revealedTokenIds), [revealedTokenIds])
+  const deadTokenIds = useMemo(
+    () => new Set(combatants.filter((c) => c.hp <= 0).map((c) => toTokenId(c.id))),
+    [combatants, toTokenId],
+  )
 
   const diffColors: Record<string, string> = {
     Easy: "text-success-light bg-success/15",
@@ -776,6 +607,20 @@ function EncounterPanel({ encounter, campaignId }: { encounter: Encounter; campa
           onClick={(e: React.MouseEvent) => e.stopPropagation()}
         >
           <ShowButton type="combat" id={encounter.id} label={encounter.name} />
+          {mapExists && playerCount > 0 && (
+            <button
+              onClick={handleShowMap}
+              className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer ${
+                mapShowing
+                  ? "bg-info/20 text-info border border-info/30"
+                  : "bg-info/10 text-info/70 border border-info/15 hover:bg-info/20 hover:text-info"
+              }`}
+              title="Show battle map to player"
+            >
+              <Map className="w-3.5 h-3.5" />
+              {mapShowing ? "Map Live" : "Show Map"}
+            </button>
+          )}
           <span
             className={`text-[10px] font-medium uppercase tracking-wider px-2 py-0.5 rounded-full ${
               diffColors[encounter.difficulty] || ""
@@ -790,13 +635,40 @@ function EncounterPanel({ encounter, campaignId }: { encounter: Encounter; campa
         <div className="px-5 pb-5 space-y-4">
           <p className="text-sm text-parchment/80">{encounter.description}</p>
 
-          {/* Map Control Panel */}
-          <MapControlPanel
-            encounter={encounter}
-            activeTurnId={activeTurnId ? toTokenId(activeTurnId) : null}
-            proneIds={proneIds}
-            tokenConditions={tokenConditions}
-          />
+          {/* Battle Map Preview */}
+          {mapShowing && map && (
+            <div className="bg-info/5 border border-info/20 rounded-xl p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Map className="w-4 h-4 text-info" />
+                  <span className="text-sm font-semibold text-info">Battle Map</span>
+                </div>
+                {/* Reveal All button */}
+                <button
+                  onClick={handleRevealAll}
+                  className="inline-flex items-center gap-1 px-2 py-1 rounded text-[10px] font-medium bg-purple-500/10 text-purple-400/70 border border-purple-500/15 hover:bg-purple-500/20 hover:text-purple-400 cursor-pointer transition-all"
+                >
+                  <Eye className="w-3 h-3" />
+                  Reveal All
+                </button>
+              </div>
+              <div className="text-[10px] text-text-muted">
+                Drag tokens to reposition — changes sync to player in real-time
+              </div>
+              <BattleMap
+                map={map}
+                revealedTokens={revealedSet}
+                tokenPositions={tokenPositions}
+                role="dm"
+                fullscreen={false}
+                onTokenMove={handleTokenMove}
+                proneTokens={proneIds}
+                activeTurnToken={activeTurnId ? toTokenId(activeTurnId) : null}
+                tokenConditions={tokenConditions}
+                deadTokens={deadTokenIds}
+              />
+            </div>
+          )}
 
           {/* Terrain */}
           {encounter.terrain && (
@@ -840,16 +712,23 @@ function EncounterPanel({ encounter, campaignId }: { encounter: Encounter; campa
 
           {/* Combatants */}
           <div className="space-y-2">
-            {sorted.map((c) => (
-              <CombatantRow
-                key={c.id}
-                combatant={c}
-                onHpChange={(delta) => updateHp(c.id, delta)}
-                onInitiativeChange={(val) => updateInitiative(c.id, val)}
-                onConditionToggle={(condition) => toggleCondition(c.id, condition)}
-                isActiveTurn={activeTurnId === c.id}
-              />
-            ))}
+            {sorted.map((c) => {
+              const tokenId = toTokenId(c.id)
+              const hasToken = map?.tokens?.[tokenId] !== undefined
+              return (
+                <CombatantRow
+                  key={c.id}
+                  combatant={c}
+                  onHpChange={(delta) => updateHp(c.id, delta)}
+                  onInitiativeChange={(val) => updateInitiative(c.id, val)}
+                  onConditionToggle={(condition) => toggleCondition(c.id, condition)}
+                  isActiveTurn={activeTurnId === c.id}
+                  isRevealed={revealedTokenIds.includes(tokenId)}
+                  onRevealToggle={() => handleRevealToggle(c.id)}
+                  hasToken={hasToken}
+                />
+              )
+            })}
           </div>
 
           {/* DM Notes */}
