@@ -329,9 +329,9 @@ export default function AbilityScoreStep({ state, onChange }: AbilityScoreStepPr
               className="flex items-center gap-3 px-4 py-3 rounded-xl bg-bg-surface/60 border border-bg-elevated/50"
             >
               {/* Ability icon + name */}
-              <div className="w-28 shrink-0 flex items-center gap-2">
+              <div className="w-36 shrink-0 flex items-center gap-2">
                 <span className="text-gold/70 shrink-0">{abilityIcons[key]}</span>
-                <div>
+                <div className="truncate">
                   <span className="font-[family-name:var(--font-display)] text-parchment text-sm">
                     {ABILITY_LABELS[key]}
                   </span>
