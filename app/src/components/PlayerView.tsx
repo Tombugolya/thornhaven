@@ -49,12 +49,18 @@ export default function PlayerView() {
 
   // Derive combat state from live sessionState (Firebase is source of truth)
   const revealedTokens = useMemo(
-    () => (sessionState?.revealedTokens ? new Set(Object.keys(sessionState.revealedTokens)) : new Set<string>()),
+    () =>
+      sessionState?.revealedTokens
+        ? new Set(Object.keys(sessionState.revealedTokens))
+        : new Set<string>(),
     [sessionState?.revealedTokens],
   )
   const tokenPositions = sessionState?.tokenPositions ?? {}
   const killedTokens = useMemo(
-    () => (sessionState?.killedTokens ? new Set(Object.keys(sessionState.killedTokens)) : new Set<string>()),
+    () =>
+      sessionState?.killedTokens
+        ? new Set(Object.keys(sessionState.killedTokens))
+        : new Set<string>(),
     [sessionState?.killedTokens],
   )
   const tokenConditions = sessionState?.tokenConditions ?? {}

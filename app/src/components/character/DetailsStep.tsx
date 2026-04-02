@@ -1,0 +1,167 @@
+import { useCallback, useMemo } from "react"
+import type { WizardState } from "../../types/character"
+import { BACKGROUNDS, ALIGNMENTS } from "../../types/character"
+
+interface DetailsStepProps {
+  state: WizardState
+  onChange: (updates: Partial<WizardState>) => void
+}
+
+export default function DetailsStep({ state, onChange }: DetailsStepProps) {
+  const handleNameChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      onChange({ name: e.target.value.slice(0, 30) })
+    },
+    [onChange],
+  )
+
+  const handleBackgroundChange = useCallback(
+    (e: React.ChangeEvent<HTMLSelectElement>) => {
+      onChange({ background: e.target.value })
+    },
+    [onChange],
+  )
+
+  const handleAlignmentChange = useCallback(
+    (e: React.ChangeEvent<HTMLSelectElement>) => {
+      onChange({ alignment: e.target.value })
+    },
+    [onChange],
+  )
+
+  const handleNotesChange = useCallback(
+    (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+      onChange({ notes: e.target.value })
+    },
+    [onChange],
+  )
+
+  const selectedBackground = useMemo(
+    () => BACKGROUNDS.find((b) => b.index === state.background),
+    [state.background],
+  )
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="font-[family-name:var(--font-display)] text-gold text-xl mb-1">
+          Character Details
+        </h2>
+        <p className="text-text-muted text-sm">
+          Name your character and choose a background that shapes their story.
+        </p>
+      </div>
+
+      {/* Character name */}
+      <div className="space-y-2">
+        <label className="block text-parchment text-xs uppercase tracking-wider">
+          Character Name <span className="text-gold">*</span>
+        </label>
+        <input
+          type="text"
+          value={state.name}
+          onChange={handleNameChange}
+          maxLength={30}
+          placeholder="Enter a name for your character"
+          className="w-full bg-bg-surface border border-gold/30 rounded-lg px-4 py-2.5 text-parchment focus:outline-none focus:border-gold placeholder:text-text-muted/50"
+        />
+        <p className="text-text-muted text-xs text-right">{state.name.length} / 30</p>
+      </div>
+
+      {/* Background */}
+      <div className="space-y-2">
+        <label className="block text-parchment text-xs uppercase tracking-wider">Background</label>
+        <select
+          value={state.background}
+          onChange={handleBackgroundChange}
+          className="w-full bg-bg-surface border border-gold/30 rounded-lg px-4 py-2.5 text-parchment focus:outline-none focus:border-gold cursor-pointer"
+        >
+          <option value="">Select a background</option>
+          {BACKGROUNDS.map((bg) => (
+            <option key={bg.index} value={bg.index}>
+              {bg.name}
+            </option>
+          ))}
+        </select>
+
+        {/* Background detail */}
+        {selectedBackground && (
+          <div
+            className="mt-3 p-4 rounded-xl bg-bg-surface/60 border border-bg-elevated/50 space-y-3"
+            style={{ animation: "loadFadeIn 0.3s ease-out" }}
+          >
+            <p className="text-parchment text-sm italic">{selectedBackground.description}</p>
+            <div>
+              <h4 className="text-parchment text-xs uppercase tracking-wider mb-1">
+                Skill Proficiencies
+              </h4>
+              <div className="flex gap-2">
+                {selectedBackground.skillProficiencies.map((skill) => (
+                  <span
+                    key={skill}
+                    className="px-2.5 py-1 rounded-lg bg-gold/10 border border-gold/20 text-gold text-xs font-medium capitalize"
+                  >
+                    {skill.replace("-", " ")}
+                  </span>
+                ))}
+              </div>
+            </div>
+            {selectedBackground.toolProficiencies.length > 0 && (
+              <div>
+                <h4 className="text-parchment text-xs uppercase tracking-wider mb-1">
+                  Tool Proficiencies
+                </h4>
+                <div className="flex gap-2">
+                  {selectedBackground.toolProficiencies.map((tool) => (
+                    <span
+                      key={tool}
+                      className="px-2.5 py-1 rounded-lg bg-bg-elevated/40 border border-bg-elevated/50 text-parchment text-xs capitalize"
+                    >
+                      {tool.replace("-", " ")}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+            {selectedBackground.languages > 0 && (
+              <p className="text-text-muted text-xs">
+                Additional Languages: {selectedBackground.languages}
+              </p>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Alignment */}
+      <div className="space-y-2">
+        <label className="block text-parchment text-xs uppercase tracking-wider">Alignment</label>
+        <select
+          value={state.alignment}
+          onChange={handleAlignmentChange}
+          className="w-full bg-bg-surface border border-gold/30 rounded-lg px-4 py-2.5 text-parchment focus:outline-none focus:border-gold cursor-pointer"
+        >
+          <option value="">Select alignment</option>
+          {ALIGNMENTS.map((a) => (
+            <option key={a} value={a}>
+              {a}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {/* Notes */}
+      <div className="space-y-2">
+        <label className="block text-parchment text-xs uppercase tracking-wider">
+          Notes <span className="text-text-muted font-normal normal-case">(optional)</span>
+        </label>
+        <textarea
+          value={state.notes}
+          onChange={handleNotesChange}
+          rows={4}
+          placeholder="Backstory, appearance, personality traits..."
+          className="w-full bg-bg-surface border border-gold/30 rounded-lg px-4 py-2.5 text-parchment focus:outline-none focus:border-gold placeholder:text-text-muted/50 resize-none"
+        />
+      </div>
+    </div>
+  )
+}

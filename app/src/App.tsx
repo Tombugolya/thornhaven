@@ -20,6 +20,8 @@ import ClueTracker from "./components/ClueTracker"
 import PlayerView from "./components/PlayerView"
 import CampaignLanding from "./components/CampaignLanding"
 import SessionPicker from "./components/SessionPicker"
+import CharacterList from "./components/character/CharacterList"
+import type { PlayerCharacter } from "./types/character"
 
 // --- Hash routing ---
 interface ParsedHash {
@@ -57,20 +59,19 @@ const tabs: { id: string; label: string; icon: LucideIcon }[] = [
 ]
 
 // --- Player Join Screen ---
-function PlayerJoin({ onJoin }: { onJoin: (code: string, name: string) => void }) {
+function PlayerJoin({
+  onJoin,
+  characterName,
+}: {
+  onJoin: (code: string) => void
+  characterName: string
+}) {
   const [code, setCode] = useState("")
-  const [name, setName] = useState(() => {
-    try {
-      return localStorage.getItem("thornhaven:playerName") || ""
-    } catch {
-      return ""
-    }
-  })
   const [error, setError] = useState<string | null>(null)
   const [checking, setChecking] = useState(false)
 
   const handleJoin = async () => {
-    if (code.length < 4 || !name.trim()) return
+    if (code.length < 4) return
     setChecking(true)
     setError(null)
     try {
@@ -80,10 +81,7 @@ function PlayerJoin({ onJoin }: { onJoin: (code: string, name: string) => void }
         setChecking(false)
         return
       }
-      try {
-        localStorage.setItem("thornhaven:playerName", name.trim())
-      } catch {}
-      onJoin(code, name.trim())
+      onJoin(code)
     } catch {
       setError("Could not connect. Try again.")
       setChecking(false)
@@ -98,39 +96,33 @@ function PlayerJoin({ onJoin }: { onJoin: (code: string, name: string) => void }
           <h1 className="font-[family-name:var(--font-display)] text-2xl text-gold">
             Join Session
           </h1>
-          <p className="text-sm text-text-muted">Enter your name and the room code from your DM</p>
+          <p className="text-sm text-text-muted">
+            Playing as <span className="text-gold font-medium">{characterName}</span>
+          </p>
+          <p className="text-sm text-text-muted">Enter the room code from your DM</p>
         </div>
-        <div className="space-y-3">
-          <input
-            type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value.slice(0, 20))}
-            className="w-full text-center text-sm bg-bg-surface border border-gold/30 rounded-lg px-4 py-3 text-parchment focus:outline-none focus:border-gold placeholder:text-text-muted/50"
-            placeholder="Your name"
-            autoFocus
-          />
-          <input
-            type="text"
-            value={code}
-            onChange={(e) => {
-              setCode(
-                e.target.value
-                  .toUpperCase()
-                  .replace(/[^A-Z0-9]/g, "")
-                  .slice(0, 5),
-              )
-              setError(null)
-            }}
-            onKeyDown={(e) => e.key === "Enter" && handleJoin()}
-            className="w-full text-center text-2xl font-mono tracking-[0.3em] bg-bg-surface border border-gold/30 rounded-lg px-4 py-3 text-gold focus:outline-none focus:border-gold placeholder:text-text-muted/50"
-            placeholder="XXXXX"
-            maxLength={5}
-          />
-        </div>
+        <input
+          type="text"
+          value={code}
+          onChange={(e) => {
+            setCode(
+              e.target.value
+                .toUpperCase()
+                .replace(/[^A-Z0-9]/g, "")
+                .slice(0, 5),
+            )
+            setError(null)
+          }}
+          onKeyDown={(e) => e.key === "Enter" && handleJoin()}
+          className="w-full text-center text-2xl font-mono tracking-[0.3em] bg-bg-surface border border-gold/30 rounded-lg px-4 py-3 text-gold focus:outline-none focus:border-gold placeholder:text-text-muted/50"
+          placeholder="XXXXX"
+          maxLength={5}
+          autoFocus
+        />
         {error && <p className="text-danger text-xs">{error}</p>}
         <button
           onClick={handleJoin}
-          disabled={code.length < 4 || !name.trim() || checking}
+          disabled={code.length < 4 || checking}
           className="w-full px-6 py-2.5 rounded-lg bg-gold/15 text-gold border border-gold/25 hover:bg-gold/25 disabled:opacity-30 cursor-pointer transition-colors text-sm font-medium"
         >
           {checking ? "Checking..." : "Join"}
@@ -653,56 +645,116 @@ function DmApp({ user, onSignOut, sessionRoomCode, navigate }: DmAppProps) {
   )
 }
 
+// --- Player Auth Gate ---
+function PlayerGate({
+  children,
+}: {
+  children: (ctx: {
+    user: User
+    character: PlayerCharacter
+    onSignOut: () => void
+  }) => React.ReactNode
+}) {
+  const [user, setUser] = useState<User | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [character, setCharacter] = useState<PlayerCharacter | null>(null)
+
+  useEffect(() => {
+    return onAuthStateChanged(auth, (u) => {
+      setUser(u)
+      setLoading(false)
+    })
+  }, [])
+
+  const handleSignIn = async () => {
+    try {
+      await signInWithPopup(auth, new GoogleAuthProvider())
+    } catch (err) {
+      console.error("Sign-in failed:", err)
+    }
+  }
+
+  const handleSignOut = () => {
+    signOut(auth)
+    setCharacter(null)
+  }
+
+  if (loading) {
+    return (
+      <div className="fixed inset-0 bg-bg-deep flex items-center justify-center">
+        <div className="text-text-muted text-sm">Loading...</div>
+      </div>
+    )
+  }
+
+  if (!user) {
+    return (
+      <div className="fixed inset-0 bg-bg-deep flex items-center justify-center">
+        <div className="text-center space-y-6">
+          <div className="space-y-2">
+            <Map className="w-10 h-10 text-gold mx-auto" />
+            <h1 className="font-[family-name:var(--font-display)] text-2xl text-gold">
+              Thornhaven
+            </h1>
+            <p className="text-sm text-text-muted">Sign in to join as a player</p>
+          </div>
+          <button
+            onClick={handleSignIn}
+            className="px-6 py-3 rounded-lg bg-gold/15 text-gold border border-gold/25 hover:bg-gold/25 cursor-pointer transition-colors flex items-center gap-2 mx-auto"
+          >
+            Sign in with Google
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  if (!character) {
+    return (
+      <CharacterList
+        userId={user.uid}
+        userName={user.displayName ?? "Adventurer"}
+        onSelectCharacter={setCharacter}
+        onSignOut={handleSignOut}
+      />
+    )
+  }
+
+  return children({ user, character, onSignOut: handleSignOut })
+}
+
 // --- Root App ---
 export default function App() {
   const { route, code, navigate } = useHashRoute()
 
-  // Player join screen
+  // Player join screen — now requires auth + character selection
   if (route === "join" || (route === "play" && !code)) {
     return (
-      <PlayerJoin
-        onJoin={(roomCode, name) => {
-          try {
-            localStorage.setItem("thornhaven:playerName", name)
-          } catch {}
-          navigate(`#/play/${roomCode}`)
-        }}
-      />
+      <PlayerGate>
+        {({ character }) => (
+          <PlayerJoin
+            onJoin={(roomCode) => {
+              navigate(`#/play/${roomCode}`)
+            }}
+            characterName={character.name}
+          />
+        )}
+      </PlayerGate>
     )
   }
 
   // Player mode
   if (route === "play" && code) {
-    const playerName = (() => {
-      try {
-        return localStorage.getItem("thornhaven:playerName") || ""
-      } catch {
-        return ""
-      }
-    })()
-
-    // If no name, redirect to join with room code pre-filled
-    if (!playerName) {
-      return (
-        <PlayerJoin
-          onJoin={(_, name) => {
-            try {
-              localStorage.setItem("thornhaven:playerName", name)
-            } catch {}
-            // Force re-render by re-navigating
-            window.location.hash = `#/play/${code}`
-            window.location.reload()
-          }}
-        />
-      )
-    }
-
     return (
-      <BroadcastProvider role="player" roomCode={code} playerName={playerName}>
-        <CampaignProvider>
-          <PlayerView />
-        </CampaignProvider>
-      </BroadcastProvider>
+      <PlayerGate>
+        {({ character }) => (
+          <BroadcastProvider role="player" roomCode={code} playerName={character.name}>
+            <CampaignProvider>
+              <PlayerView />
+            </CampaignProvider>
+          </BroadcastProvider>
+        )}
+      </PlayerGate>
     )
   }
 
