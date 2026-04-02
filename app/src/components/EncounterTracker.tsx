@@ -209,7 +209,7 @@ function CombatantRow({
                 Ally
               </span>
             )}
-            {hasToken && onRevealToggle && (
+            {hasToken && onRevealToggle && !combatant.isAlly && !combatant.isPC && (
               <button
                 onClick={(e) => {
                   e.stopPropagation()
