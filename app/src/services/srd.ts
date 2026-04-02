@@ -9,7 +9,9 @@ import type {
   SrdSpellDetail,
 } from "../types/character"
 
-const BASE_URL = "https://www.dnd5eapi.co/api"
+// Use our backend API when available, fall back to SRD directly
+const API_BASE = import.meta.env.VITE_API_URL ?? ""
+const BASE_URL = API_BASE ? `${API_BASE}/api` : "https://www.dnd5eapi.co/api"
 
 // In-memory cache — SRD data is static, never changes
 const cache = new Map<string, unknown>()
