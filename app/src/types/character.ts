@@ -263,6 +263,8 @@ export interface PlayerCharacter {
   subraceName?: string
   class: string
   className: string
+  subclass?: string
+  subclassName?: string
   level: number
   background: string
   backgroundName: string
@@ -322,6 +324,7 @@ export interface WizardState {
   subrace?: SrdSubrace
   // Step 2: Class
   class?: SrdClass
+  subclass?: SrdReference
   selectedSkills: string[]
   // Step 3: Ability Scores
   method: "standard-array" | "point-buy" | "manual"
@@ -335,9 +338,10 @@ export interface WizardState {
 
 export const INITIAL_WIZARD_STATE: WizardState = {
   step: 0,
+  subclass: undefined,
   selectedSkills: [],
   method: "standard-array",
-  baseScores: { str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 10 },
+  baseScores: { str: 0, dex: 0, con: 0, int: 0, wis: 0, cha: 0 },
   name: "",
   background: "",
   alignment: "",

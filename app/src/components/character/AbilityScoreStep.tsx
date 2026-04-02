@@ -177,6 +177,8 @@ export default function AbilityScoreStep({ state, onChange }: AbilityScoreStepPr
         onChange({ method, baseScores: cached })
       } else if (method === "manual") {
         onChange({ method, baseScores: { str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 10 } })
+      } else if (method === "standard-array") {
+        onChange({ method, baseScores: { str: 0, dex: 0, con: 0, int: 0, wis: 0, cha: 0 } })
       } else {
         onChange({ method, baseScores: { str: 8, dex: 8, con: 8, int: 8, wis: 8, cha: 8 } })
       }
@@ -210,7 +212,7 @@ export default function AbilityScoreStep({ state, onChange }: AbilityScoreStepPr
     (currentKey: AbilityKey): number[] => {
       const currentVal = state.baseScores[currentKey]
       return STANDARD_ARRAY.filter((v) => {
-        if (v === currentVal) return true
+        if (v === currentVal && currentVal !== 0) return true
         const usedCount = usedValues.get(v) ?? 0
         const totalAvailable = STANDARD_ARRAY.filter((sv) => sv === v).length
         return usedCount < totalAvailable
@@ -288,6 +290,18 @@ export default function AbilityScoreStep({ state, onChange }: AbilityScoreStepPr
         </div>
       )}
 
+      {/* Reset button */}
+      {state.method === "standard-array" && (
+        <button
+          onClick={() =>
+            onChange({ baseScores: { str: 0, dex: 0, con: 0, int: 0, wis: 0, cha: 0 } })
+          }
+          className="text-xs text-text-muted hover:text-gold transition-colors cursor-pointer"
+        >
+          Reset all scores
+        </button>
+      )}
+
       {/* Ability score inputs */}
       <div className="space-y-3">
         {ABILITY_KEYS.map((key) => {
@@ -317,16 +331,14 @@ export default function AbilityScoreStep({ state, onChange }: AbilityScoreStepPr
                   <select
                     value={base}
                     onChange={(e) => handleScoreChange(key, Number(e.target.value))}
-                    className="bg-bg-surface border border-gold/30 rounded-lg px-3 py-1.5 text-parchment text-sm focus:outline-none focus:border-gold w-20 cursor-pointer"
+                    className="bg-bg-surface border border-gold/30 rounded-lg px-3 py-1.5 text-parchment text-sm focus:outline-none focus:border-gold w-24 cursor-pointer relative z-10"
                   >
-                    <option value={base}>{base === 8 ? "--" : base}</option>
-                    {getAvailableValues(key)
-                      .filter((v) => v !== base)
-                      .map((v) => (
-                        <option key={v} value={v}>
-                          {v}
-                        </option>
-                      ))}
+                    <option value={0}>--</option>
+                    {getAvailableValues(key).map((v) => (
+                      <option key={v} value={v}>
+                        {v}
+                      </option>
+                    ))}
                   </select>
                 )}
 

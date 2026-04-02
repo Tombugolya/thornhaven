@@ -190,6 +190,7 @@ export default function ReviewStep({ state }: ReviewStepProps) {
               <p className="text-parchment text-sm mt-1">
                 {race.name}
                 {subrace ? ` (${subrace.name})` : ""} {cls.name}
+                {state.subclass ? ` \u2014 ${state.subclass.name}` : ""}
               </p>
             </div>
             <div className="text-right">

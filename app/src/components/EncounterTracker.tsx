@@ -283,34 +283,36 @@ function CombatantRow({
 
 function EncounterPanel({ encounter }: { encounter: Encounter }) {
   const [open, setOpen] = useState(false)
-  const { showToPlayer, playerCount, sessionState, syncState } = useBroadcast()
+  const { showToPlayer, playerCount, players, sessionState, syncState } = useBroadcast()
   const { campaign } = useCampaign()
   const mapExists = !!campaign.battleMaps[encounter.id]
 
   const map = campaign.battleMaps[encounter.id]
 
   const defaultCombatants = (): Combatant[] => {
-    const list: Combatant[] = [
-      ...encounter.enemies.map(
-        (e): Combatant => ({
-          ...e,
-          isAlly: false,
+    const list: Combatant[] = []
+
+    // Add PC combatants from connected players with character data
+    Object.entries(players).forEach(([playerId, player]) => {
+      if (player.character) {
+        list.push({
+          id: `pc-${playerId}`,
+          name: player.character.name,
+          hp: player.character.maxHp,
+          maxHp: player.character.maxHp,
+          ac: player.character.ac,
           initiative: null,
           conditions: [],
-        }),
-      ),
-      ...encounter.allies.map(
-        (a): Combatant => ({
-          ...a,
+          notes: `Level ${player.character.level} ${player.character.raceName} ${player.character.className}`,
+          isPC: true,
           isAlly: true,
-          initiative: null,
-          conditions: [],
-        }),
-      ),
-    ]
-    // Auto-add PC if the map has a player token
-    if (map?.tokens?.player) {
-      list.unshift({
+        })
+      }
+    })
+
+    // Fallback: if no connected players have characters but the map has a player token, add a placeholder PC
+    if (list.length === 0 && map?.tokens?.player) {
+      list.push({
         id: "player",
         name: "Player",
         isAlly: true,
@@ -323,6 +325,31 @@ function EncounterPanel({ encounter }: { encounter: Encounter }) {
         notes: "",
       })
     }
+
+    // Add enemies
+    list.push(
+      ...encounter.enemies.map(
+        (e): Combatant => ({
+          ...e,
+          isAlly: false,
+          initiative: null,
+          conditions: [],
+        }),
+      ),
+    )
+
+    // Add NPC allies
+    list.push(
+      ...encounter.allies.map(
+        (a): Combatant => ({
+          ...a,
+          isAlly: true,
+          initiative: null,
+          conditions: [],
+        }),
+      ),
+    )
+
     return list
   }
 
@@ -354,9 +381,12 @@ function EncounterPanel({ encounter }: { encounter: Encounter }) {
   )
 
   // Map combatant IDs → map token IDs. Enemies match directly; allies use npcId.
+  // PC combatants (pc-{playerId}) map to the "player" token on the battle map.
   const toTokenId = useCallback(
     (combatantId: string) => {
       if (!map) return combatantId
+      // Map pc-{playerId} combatants to the "player" map token
+      if (combatantId.startsWith("pc-") && map.tokens["player"]) return "player"
       if (map.tokens[combatantId]) return combatantId // direct match (enemies)
       const combatant = combatants.find((c) => c.id === combatantId)
       if (combatant?.npcId && map.tokens[combatant.npcId]) return combatant.npcId

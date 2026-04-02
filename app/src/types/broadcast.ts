@@ -1,8 +1,30 @@
 export type BroadcastRole = "dm" | "player"
 
+export interface PlayerCharacterInfo {
+  name: string
+  raceName: string
+  className: string
+  level: number
+  hp: number
+  maxHp: number
+  ac: number
+  speed: number
+  hitDie: number
+  abilityScores: {
+    str: number
+    dex: number
+    con: number
+    int: number
+    wis: number
+    cha: number
+  }
+}
+
 export interface PlayerInfo {
   name: string
   joinedAt: number
+  characterId?: string
+  character?: PlayerCharacterInfo
 }
 
 // --- Messages ---

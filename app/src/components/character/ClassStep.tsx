@@ -9,6 +9,36 @@ import {
 import { ABILITY_LABELS } from "../../types/character"
 import type { AbilityKey } from "../../types/character"
 
+const SUBCLASS_LEVELS: Record<string, number> = {
+  barbarian: 3,
+  bard: 3,
+  cleric: 1,
+  druid: 2,
+  fighter: 3,
+  monk: 3,
+  paladin: 3,
+  ranger: 3,
+  rogue: 3,
+  sorcerer: 1,
+  warlock: 1,
+  wizard: 2,
+}
+
+const SUBCLASS_LABELS: Record<string, string> = {
+  barbarian: "Primal Path",
+  bard: "Bard College",
+  cleric: "Divine Domain",
+  druid: "Druid Circle",
+  fighter: "Martial Archetype",
+  monk: "Monastic Tradition",
+  paladin: "Sacred Oath",
+  ranger: "Ranger Conclave",
+  rogue: "Roguish Archetype",
+  sorcerer: "Sorcerous Origin",
+  warlock: "Otherworldly Patron",
+  wizard: "Arcane Tradition",
+}
+
 interface ClassStepProps {
   classes: SrdReference[]
   skills: SrdSkill[]
@@ -243,7 +273,7 @@ export default function ClassStep({ classes, skills, state, onChange }: ClassSte
       setLoadingClass(ref.index)
       try {
         const cls = await fetchClass(ref.index)
-        onChange({ class: cls, selectedSkills: [] })
+        onChange({ class: cls, selectedSkills: [], subclass: undefined })
       } finally {
         setLoadingClass(null)
       }
@@ -482,6 +512,49 @@ export default function ClassStep({ classes, skills, state, onChange }: ClassSte
                         )}
                       </span>
                       <span className="truncate">{skill?.name ?? skillIndex}</span>
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Subclass selection */}
+          {classDetail.subclasses.length > 0 && (
+            <div className="border-t border-bg-elevated/30 pt-4">
+              <div className="flex items-baseline justify-between mb-3">
+                <h4 className="text-parchment text-xs uppercase tracking-wider">
+                  {SUBCLASS_LABELS[classDetail.index] ?? "Subclass"}
+                </h4>
+                {(SUBCLASS_LEVELS[classDetail.index] ?? 3) > 1 && (
+                  <span className="text-text-muted text-xs italic">
+                    Available at level {SUBCLASS_LEVELS[classDetail.index] ?? 3}
+                  </span>
+                )}
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                {classDetail.subclasses.map((sc) => {
+                  const isSelected = state.subclass?.index === sc.index
+                  return (
+                    <button
+                      key={sc.index}
+                      onClick={() =>
+                        onChange({
+                          subclass: isSelected ? undefined : sc,
+                        })
+                      }
+                      className={`relative text-left p-4 rounded-xl border transition-all duration-300 cursor-pointer ${
+                        isSelected
+                          ? "border-gold/50 bg-gold/5 ring-1 ring-gold/30 shadow-[0_0_15px_rgba(201,162,39,0.1)]"
+                          : "bg-bg-elevated/30 border-bg-elevated/40 hover:bg-bg-elevated/50 hover:border-gold/20"
+                      }`}
+                    >
+                      {isSelected && (
+                        <div className="absolute inset-0 rounded-xl bg-gradient-to-b from-gold/5 to-transparent pointer-events-none" />
+                      )}
+                      <h5 className="font-[family-name:var(--font-display)] text-sm font-semibold text-parchment relative">
+                        {sc.name}
+                      </h5>
                     </button>
                   )
                 })}

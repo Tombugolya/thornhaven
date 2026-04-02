@@ -89,6 +89,15 @@ export default function CharacterWizard({ onComplete, onCancel }: CharacterWizar
         if (!state.class) return false
         const choice = classSkillChoices(state.class)
         if (choice.choose > 0 && state.selectedSkills.length !== choice.choose) return false
+        // Subclass required for classes that get it at level 1 (Cleric, Sorcerer)
+        const subclassLevel =
+          state.class.index === "cleric" || state.class.index === "sorcerer" ? 1 : 0
+        if (
+          subclassLevel === 1 &&
+          state.class.subclasses.length > 0 &&
+          !state.subclass
+        )
+          return false
         return true
       }
       case 2: {
@@ -163,6 +172,8 @@ export default function CharacterWizard({ onComplete, onCancel }: CharacterWizar
       subraceName: state.subrace?.name,
       class: state.class.index,
       className: state.class.name,
+      subclass: state.subclass?.index,
+      subclassName: state.subclass?.name,
       level: 1,
       background: state.background,
       backgroundName: bg?.name ?? "",

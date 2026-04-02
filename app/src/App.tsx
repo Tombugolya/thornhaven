@@ -643,7 +643,7 @@ export default function App() {
     return (
       <PlayerGate>
         {({ character }) => (
-          <BroadcastProvider role="player" roomCode={code} playerName={character.name}>
+          <BroadcastProvider role="player" roomCode={code} playerName={character.name} playerCharacter={character}>
             <CampaignProvider>
               <PlayerView />
             </CampaignProvider>

@@ -29,7 +29,9 @@ import type {
   BroadcastMessage,
   SessionState,
   PlayerInfo,
+  PlayerCharacterInfo,
 } from "../types/broadcast"
+import type { PlayerCharacter } from "../types/character"
 
 const BroadcastContext = createContext<BroadcastContextValue | null>(null)
 
@@ -102,10 +104,28 @@ function getStateUpdates(
   }
 }
 
+function toCharacterInfo(
+  pc: PlayerCharacter,
+): PlayerCharacterInfo {
+  return {
+    name: pc.name,
+    raceName: pc.raceName,
+    className: pc.className,
+    level: pc.level,
+    hp: pc.hp,
+    maxHp: pc.maxHp,
+    ac: pc.ac,
+    speed: pc.speed,
+    hitDie: pc.hitDie,
+    abilityScores: { ...pc.abilityScores },
+  }
+}
+
 interface BroadcastProviderProps {
   role: BroadcastRole
   roomCode?: string
   playerName?: string
+  playerCharacter?: PlayerCharacter
   dmUid?: string
   campaignId?: string
   children: ReactNode
@@ -115,6 +135,7 @@ export function BroadcastProvider({
   role,
   roomCode: roomCodeProp,
   playerName,
+  playerCharacter,
   dmUid,
   campaignId,
   children,
@@ -223,12 +244,17 @@ export function BroadcastProvider({
       const playerId = playerIdRef.current
       const myPresenceRef = ref(db, `rooms/${roomCode}/presence/${playerId}`)
 
-      // Register presence with name
-      set(myPresenceRef, {
+      // Register presence with name and character data
+      const presenceData: Record<string, unknown> = {
         name: playerName || "Adventurer",
         joinedAt: Date.now(),
         _owner: playerId,
-      })
+      }
+      if (playerCharacter) {
+        presenceData.characterId = playerCharacter.id
+        presenceData.character = toCharacterInfo(playerCharacter)
+      }
+      set(myPresenceRef, presenceData)
       onDisconnect(myPresenceRef).remove()
       cleanups.push(() => remove(myPresenceRef))
 
@@ -283,7 +309,7 @@ export function BroadcastProvider({
     }
 
     return () => cleanups.forEach((fn) => fn())
-  }, [role, roomCode, playerName, writeSessionMeta])
+  }, [role, roomCode, playerName, playerCharacter, writeSessionMeta])
 
   // --- Send message ---
   const send = useCallback(
