@@ -211,6 +211,12 @@ export function BroadcastProvider({
       }, 300000)
       cleanups.push(() => clearInterval(pruneInterval))
 
+      // Live listener on state — keeps sessionState in sync for DM
+      onValue(stateRef, (snap) => {
+        setSessionState((snap.val() as SessionState) ?? null)
+      })
+      cleanups.push(() => off(stateRef))
+
       setConnected(true)
     } else {
       // Player
@@ -317,6 +323,14 @@ export function BroadcastProvider({
     send({ type: "clear", timestamp: Date.now(), from })
   }, [send, role])
 
+  const syncState = useCallback(
+    (updates: Record<string, unknown>) => {
+      if (!roomCode || !isRealSession) return
+      update(ref(db, `rooms/${roomCode}/state`), updates)
+    },
+    [roomCode, isRealSession],
+  )
+
   return (
     <BroadcastContext.Provider
       value={{
@@ -327,6 +341,7 @@ export function BroadcastProvider({
         sessionState,
         showToPlayer,
         clearPlayer,
+        syncState,
         role,
         roomCode,
       }}
@@ -336,6 +351,8 @@ export function BroadcastProvider({
   )
 }
 
-export function useBroadcast() {
-  return useContext(BroadcastContext) as BroadcastContextValue
+export function useBroadcast(): BroadcastContextValue {
+  const ctx = useContext(BroadcastContext)
+  if (!ctx) throw new Error("useBroadcast must be used within a BroadcastProvider")
+  return ctx
 }

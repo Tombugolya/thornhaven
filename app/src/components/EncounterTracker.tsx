@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useMemo } from "react"
+import { useState, useCallback, useMemo } from "react"
 import {
   Swords,
   Heart,
@@ -22,10 +22,10 @@ import {
 import type { LucideIcon } from "lucide-react"
 import { useCampaign } from "../hooks/useCampaign"
 import { useBroadcast } from "../hooks/useBroadcast"
-import { usePersistedState } from "../hooks/usePersistedState"
 import ShowButton from "./ShowButton"
 import BattleMap from "./BattleMap"
 import type { Encounter } from "../types/campaign"
+import type { EncounterCombatantState, EncounterState } from "../types/broadcast"
 
 interface ConditionDef {
   key: string
@@ -35,19 +35,7 @@ interface ConditionDef {
   color: string
 }
 
-interface Combatant {
-  id: string
-  name: string
-  npcId?: string
-  hp: number
-  maxHp: number
-  ac: number
-  notes: string
-  isAlly: boolean
-  isPC?: boolean
-  initiative: number | null
-  conditions: string[]
-}
+type Combatant = EncounterCombatantState
 
 const CONDITIONS: ConditionDef[] = [
   {
@@ -293,9 +281,9 @@ function CombatantRow({
   )
 }
 
-function EncounterPanel({ encounter, campaignId }: { encounter: Encounter; campaignId: string }) {
+function EncounterPanel({ encounter }: { encounter: Encounter }) {
   const [open, setOpen] = useState(false)
-  const { showToPlayer, playerCount, lastMessage, sessionState } = useBroadcast()
+  const { showToPlayer, playerCount, sessionState, syncState } = useBroadcast()
   const { campaign } = useCampaign()
   const mapExists = !!campaign.battleMaps[encounter.id]
 
@@ -303,18 +291,22 @@ function EncounterPanel({ encounter, campaignId }: { encounter: Encounter; campa
 
   const defaultCombatants = (): Combatant[] => {
     const list: Combatant[] = [
-      ...encounter.enemies.map((e) => ({
-        ...e,
-        isAlly: false,
-        initiative: null,
-        conditions: [] as string[],
-      })),
-      ...encounter.allies.map((a) => ({
-        ...a,
-        isAlly: true,
-        initiative: null,
-        conditions: [] as string[],
-      })),
+      ...encounter.enemies.map(
+        (e): Combatant => ({
+          ...e,
+          isAlly: false,
+          initiative: null,
+          conditions: [],
+        }),
+      ),
+      ...encounter.allies.map(
+        (a): Combatant => ({
+          ...a,
+          isAlly: true,
+          initiative: null,
+          conditions: [],
+        }),
+      ),
     ]
     // Auto-add PC if the map has a player token
     if (map?.tokens?.player) {
@@ -334,66 +326,32 @@ function EncounterPanel({ encounter, campaignId }: { encounter: Encounter; campa
     return list
   }
 
-  const [combatants, setCombatants] = usePersistedState<Combatant[]>(
-    `dm:${campaignId}:encounter:${encounter.id}:combatants`,
-    defaultCombatants(),
-  )
+  // Read encounter state from Firebase (live via onValue listener)
+  const encounterState =
+    sessionState?.encounter?.id === encounter.id ? sessionState.encounter : null
+  const combatants = encounterState?.combatants ?? defaultCombatants()
+  const round = encounterState?.round ?? 1
+  const activeTurnId = encounterState?.activeTurnId ?? null
+  const revealedTokenIds = encounterState?.revealedTokenIds ?? []
+  const mapShowing = encounterState?.mapShowing ?? false
+  const tokenPositions = sessionState?.tokenPositions ?? {}
 
-  // Migrate: inject PC if persisted state predates the PC addition
-  useEffect(() => {
-    if (map?.tokens?.player) {
-      setCombatants((prev) => {
-        if (prev.find((c) => c.id === "player")) return prev
-        return [
-          {
-            id: "player",
-            name: "Player",
-            isAlly: true,
-            isPC: true,
-            hp: 25,
-            maxHp: 25,
-            ac: 15,
-            initiative: null,
-            conditions: [],
-            notes: "",
-          },
-          ...prev,
-        ]
+  // Write the full encounter state to Firebase
+  const syncEncounter = useCallback(
+    (overrides: Partial<EncounterState>) => {
+      syncState({
+        encounter: {
+          id: encounter.id,
+          combatants: overrides.combatants ?? combatants,
+          round: overrides.round ?? round,
+          activeTurnId: "activeTurnId" in overrides ? overrides.activeTurnId : activeTurnId,
+          revealedTokenIds: overrides.revealedTokenIds ?? revealedTokenIds,
+          mapShowing: overrides.mapShowing ?? mapShowing,
+        },
       })
-    }
-  }, [map])
-  const [round, setRound] = usePersistedState(`dm:${campaignId}:encounter:${encounter.id}:round`, 1)
-  const [activeTurnId, setActiveTurnId] = usePersistedState<string | null>(
-    `dm:${campaignId}:encounter:${encounter.id}:activeTurn`,
-    null,
+    },
+    [syncState, encounter.id, combatants, round, activeTurnId, revealedTokenIds, mapShowing],
   )
-  const [revealedTokenIds, setRevealedTokenIds] = usePersistedState<string[]>(
-    `dm:${campaignId}:encounter:${encounter.id}:revealed`,
-    [],
-  )
-  const [mapShowing, setMapShowing] = usePersistedState<boolean>(
-    `dm:${campaignId}:encounter:${encounter.id}:mapShowing`,
-    false,
-  )
-  const [tokenPositions, setTokenPositions] = useState<Record<string, { x: number; y: number }>>({})
-
-  // Listen for player moves
-  useEffect(() => {
-    if (lastMessage?.type === "move") {
-      setTokenPositions((prev) => ({
-        ...prev,
-        [lastMessage.tokenId]: { x: lastMessage.x, y: lastMessage.y },
-      }))
-    }
-  }, [lastMessage])
-
-  // DM recovery on mount — recover tokenPositions from sessionState
-  useEffect(() => {
-    if (sessionState?.tokenPositions && mapShowing) {
-      setTokenPositions(sessionState.tokenPositions as Record<string, { x: number; y: number }>)
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []) // only on mount
 
   // Map combatant IDs → map token IDs. Enemies match directly; allies use npcId.
   const toTokenId = useCallback(
@@ -408,13 +366,16 @@ function EncounterPanel({ encounter, campaignId }: { encounter: Encounter; campa
   )
 
   const resetEncounter = useCallback(() => {
-    setCombatants(defaultCombatants())
-    setRound(1)
-    setActiveTurnId(null)
-    setRevealedTokenIds([])
-    setMapShowing(false)
-    setTokenPositions({})
-  }, [encounter, setCombatants, setRound, setActiveTurnId, setRevealedTokenIds, setMapShowing])
+    syncState({
+      encounter: null,
+      currentMap: null,
+      revealedTokens: null,
+      killedTokens: null,
+      tokenPositions: null,
+      tokenConditions: null,
+      activeTurnToken: null,
+    })
+  }, [syncState])
 
   const updateHp = useCallback(
     (id: string, delta: number) => {
@@ -423,7 +384,8 @@ function EncounterPanel({ encounter, campaignId }: { encounter: Encounter; campa
       const oldHp = combatant.hp
       const newHp = Math.max(0, Math.min(combatant.maxHp, oldHp + delta))
 
-      setCombatants((prev) => prev.map((c) => (c.id === id ? { ...c, hp: newHp } : c)))
+      const newCombatants = combatants.map((c) => (c.id === id ? { ...c, hp: newHp } : c))
+      syncEncounter({ combatants: newCombatants })
 
       if (playerCount > 0 && mapExists) {
         const tokenId = toTokenId(id)
@@ -445,14 +407,15 @@ function EncounterPanel({ encounter, campaignId }: { encounter: Encounter; campa
         }
       }
     },
-    [combatants, setCombatants, playerCount, mapExists, showToPlayer, toTokenId, encounter.name],
+    [combatants, syncEncounter, playerCount, mapExists, showToPlayer, toTokenId, encounter.name],
   )
 
   const updateInitiative = useCallback(
     (id: string, val: number) => {
-      setCombatants((prev) => prev.map((c) => (c.id === id ? { ...c, initiative: val } : c)))
+      const newCombatants = combatants.map((c) => (c.id === id ? { ...c, initiative: val } : c))
+      syncEncounter({ combatants: newCombatants })
     },
-    [setCombatants],
+    [combatants, syncEncounter],
   )
 
   const toggleCondition = useCallback(
@@ -465,15 +428,16 @@ function EncounterPanel({ encounter, campaignId }: { encounter: Encounter; campa
         ? conditions.filter((x) => x !== condition)
         : [...conditions, condition]
 
-      setCombatants((prev) =>
-        prev.map((c) => (c.id === id ? { ...c, conditions: newConditions } : c)),
+      const newCombatants = combatants.map((c) =>
+        c.id === id ? { ...c, conditions: newConditions } : c,
       )
+      syncEncounter({ combatants: newCombatants })
 
       if (playerCount > 0 && mapExists) {
         showToPlayer("conditions", null, { tokenId: toTokenId(id), conditions: newConditions })
       }
     },
-    [combatants, setCombatants, playerCount, mapExists, showToPlayer, toTokenId],
+    [combatants, syncEncounter, playerCount, mapExists, showToPlayer, toTokenId],
   )
 
   const handleRevealToggle = useCallback(
@@ -481,18 +445,16 @@ function EncounterPanel({ encounter, campaignId }: { encounter: Encounter; campa
       const tokenId = toTokenId(combatantId)
       if (!revealedTokenIds.includes(tokenId)) {
         showToPlayer("reveal", null, { tokenId })
-        setRevealedTokenIds((prev) => [...prev, tokenId])
+        syncEncounter({ revealedTokenIds: [...revealedTokenIds, tokenId] })
       }
     },
-    [toTokenId, revealedTokenIds, showToPlayer, setRevealedTokenIds],
+    [toTokenId, revealedTokenIds, showToPlayer, syncEncounter],
   )
 
   const handleShowMap = useCallback(() => {
     showToPlayer("map", encounter.id)
-    setMapShowing(true)
-    setRevealedTokenIds([])
-    setTokenPositions({})
-  }, [showToPlayer, encounter.id, setMapShowing, setRevealedTokenIds])
+    syncEncounter({ mapShowing: true, revealedTokenIds: [] })
+  }, [showToPlayer, encounter.id, syncEncounter])
 
   const handleRevealAll = useCallback(() => {
     if (!map) return
@@ -500,12 +462,11 @@ function EncounterPanel({ encounter, campaignId }: { encounter: Encounter; campa
       .filter(([, t]) => !t.ally)
       .map(([id]) => id)
     enemyIds.forEach((id) => showToPlayer("reveal", null, { tokenId: id }))
-    setRevealedTokenIds(enemyIds)
-  }, [map, showToPlayer, setRevealedTokenIds])
+    syncEncounter({ revealedTokenIds: enemyIds })
+  }, [map, showToPlayer, syncEncounter])
 
   const handleTokenMove = useCallback(
     (tokenId: string, x: number, y: number) => {
-      setTokenPositions((prev) => ({ ...prev, [tokenId]: { x, y } }))
       showToPlayer("move", null, { tokenId, x, y })
     },
     [showToPlayer],
@@ -522,8 +483,7 @@ function EncounterPanel({ encounter, campaignId }: { encounter: Encounter; campa
     if (!activeTurnId) {
       // Start combat — first combatant
       const first = alive[0]
-      setActiveTurnId(first.id)
-      setRound(1)
+      syncEncounter({ activeTurnId: first.id, round: 1 })
       if (playerCount > 0 && mapExists) {
         showToPlayer("activeTurn", null, { tokenId: toTokenId(first.id) })
       }
@@ -534,19 +494,18 @@ function EncounterPanel({ encounter, campaignId }: { encounter: Encounter; campa
     if (nextIdx >= alive.length) {
       // Wrap to top — new round
       const first = alive[0]
-      setActiveTurnId(first.id)
-      setRound((r) => r + 1)
+      syncEncounter({ activeTurnId: first.id, round: round + 1 })
       if (playerCount > 0 && mapExists) {
         showToPlayer("activeTurn", null, { tokenId: toTokenId(first.id) })
       }
     } else {
       const next = alive[nextIdx]
-      setActiveTurnId(next.id)
+      syncEncounter({ activeTurnId: next.id })
       if (playerCount > 0 && mapExists) {
         showToPlayer("activeTurn", null, { tokenId: toTokenId(next.id) })
       }
     }
-  }, [sorted, activeTurnId, playerCount, mapExists, showToPlayer, toTokenId])
+  }, [sorted, activeTurnId, round, syncEncounter, playerCount, mapExists, showToPlayer, toTokenId])
 
   // Collect conditions per token for passing to BattleMap
   // Uses map token IDs so conditions render on the correct tokens
@@ -796,7 +755,7 @@ export default function EncounterTracker() {
       {/* Encounters */}
       <div className="space-y-3">
         {campaign.encounters.map((e) => (
-          <EncounterPanel key={e.id} encounter={e} campaignId={campaign.id} />
+          <EncounterPanel key={e.id} encounter={e} />
         ))}
       </div>
     </div>

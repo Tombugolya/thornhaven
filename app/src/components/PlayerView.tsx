@@ -58,39 +58,38 @@ export default function PlayerView() {
     if (!sessionState || recoveredRef.current) return
     recoveredRef.current = true
 
-    if (sessionState.mood) setMood(sessionState.mood as string)
+    if (sessionState.mood) setMood(sessionState.mood)
     setCampaignActive(true)
 
     // Recover combat state
     if (sessionState.revealedTokens) {
-      setRevealedTokens(
-        new Set(Object.keys(sessionState.revealedTokens as Record<string, unknown>)),
-      )
+      setRevealedTokens(new Set(Object.keys(sessionState.revealedTokens)))
     }
     if (sessionState.tokenPositions) {
-      setTokenPositions(sessionState.tokenPositions as Record<string, { x: number; y: number }>)
+      setTokenPositions(sessionState.tokenPositions)
     }
     if (sessionState.tokenConditions) {
-      setTokenConditions(sessionState.tokenConditions as Record<string, string[]>)
+      setTokenConditions(sessionState.tokenConditions)
     }
     if (sessionState.activeTurnToken) {
-      setActiveTurnToken(sessionState.activeTurnToken as string)
+      setActiveTurnToken(sessionState.activeTurnToken)
     }
     if (sessionState.killedTokens) {
-      setKilledTokens(new Set(Object.keys(sessionState.killedTokens as Record<string, unknown>)))
+      setKilledTokens(new Set(Object.keys(sessionState.killedTokens)))
     }
 
     // Recover current display
     if (sessionState.currentMap) {
-      const map = battleMaps[sessionState.currentMap as string]
+      const map = battleMaps[sessionState.currentMap]
       if (map) setActiveMap(map)
     } else if (sessionState.currentDisplay) {
-      const { type, id } = sessionState.currentDisplay as { type: string; id: string }
+      const { type, id } = sessionState.currentDisplay
       if (type === "handout") {
         const handout = campaign.handouts?.[id]
         if (handout) setActiveHandout(handout)
       } else {
-        const displayType = type as SceneData["displayType"]
+        const displayType: SceneData["displayType"] =
+          type === "location" ? "location" : type === "character" ? "character" : "combat"
         const visuals =
           type === "location"
             ? locationVisuals

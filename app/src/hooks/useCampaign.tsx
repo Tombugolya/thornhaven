@@ -55,6 +55,8 @@ export function CampaignProvider({ children }: { children: ReactNode }) {
   )
 }
 
-export function useCampaign() {
-  return useContext(CampaignContext) as CampaignContextValue
+export function useCampaign(): CampaignContextValue {
+  const ctx = useContext(CampaignContext)
+  if (!ctx) throw new Error("useCampaign must be used within a CampaignProvider")
+  return ctx
 }

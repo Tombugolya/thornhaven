@@ -117,19 +117,45 @@ export type BroadcastMessage =
   | PuzzleSolvedMessage
   | SelectCampaignMessage
 
-// --- Session State ---
+// --- Encounter State (persisted to Firebase) ---
+
+export interface EncounterCombatantState {
+  id: string
+  name: string
+  hp: number
+  maxHp: number
+  ac: number
+  initiative: number | null
+  conditions: string[]
+  notes: string
+  npcId?: string
+  isAlly?: boolean
+  isPC?: boolean
+}
+
+export interface EncounterState {
+  id: string
+  combatants: EncounterCombatantState[]
+  round: number
+  activeTurnId: string | null
+  revealedTokenIds: string[]
+  mapShowing: boolean
+}
+
+// --- Session State (persisted to Firebase) ---
 
 export interface SessionState {
-  scene?: { type: string; id: string }
-  map?: string
-  handout?: string
-  mood?: string
-  revealed?: string[]
-  tokenPositions?: Record<string, { x: number; y: number }>
-  killed?: string[]
-  conditions?: Record<string, string[]>
-  activeTurn?: string | null
-  [key: string]: unknown
+  currentDisplay?: { type: string; id: string } | null
+  currentMap?: string | null
+  mood?: string | null
+  revealedTokens?: Record<string, true> | null
+  killedTokens?: Record<string, true> | null
+  tokenPositions?: Record<string, { x: number; y: number }> | null
+  tokenConditions?: Record<string, string[]> | null
+  activeTurnToken?: string | null
+  revealedHandouts?: Record<string, true> | null
+  completedEncounters?: Record<string, true> | null
+  encounter?: EncounterState | null
 }
 
 // --- Context ---
@@ -142,6 +168,7 @@ export interface BroadcastContextValue {
   sessionState: SessionState | null
   showToPlayer: (type: string, id: string | null, extra?: Record<string, unknown>) => void
   clearPlayer: () => void
+  syncState: (updates: Record<string, unknown>) => void
   role: BroadcastRole
   roomCode: string
 }
