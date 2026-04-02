@@ -5,6 +5,9 @@ import {
   GoogleAuthProvider,
   onAuthStateChanged,
   signOut,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  updateProfile,
   User,
 } from "firebase/auth"
 import { ref, get } from "firebase/database"
@@ -658,6 +661,12 @@ function PlayerGate({
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
   const [character, setCharacter] = useState<PlayerCharacter | null>(null)
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
+  const [displayName, setDisplayName] = useState("")
+  const [isSignUp, setIsSignUp] = useState(false)
+  const [authError, setAuthError] = useState<string | null>(null)
+  const [submitting, setSubmitting] = useState(false)
 
   useEffect(() => {
     return onAuthStateChanged(auth, (u) => {
@@ -666,11 +675,27 @@ function PlayerGate({
     })
   }, [])
 
-  const handleSignIn = async () => {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!email || !password || (isSignUp && !displayName)) return
+    setSubmitting(true)
+    setAuthError(null)
     try {
-      await signInWithPopup(auth, new GoogleAuthProvider())
+      if (isSignUp) {
+        const cred = await createUserWithEmailAndPassword(auth, email, password)
+        await updateProfile(cred.user, { displayName })
+      } else {
+        await signInWithEmailAndPassword(auth, email, password)
+      }
     } catch (err) {
-      console.error("Sign-in failed:", err)
+      const msg = err instanceof Error ? err.message : "Authentication failed"
+      if (msg.includes("email-already-in-use")) setAuthError("Email already in use. Try signing in.")
+      else if (msg.includes("wrong-password") || msg.includes("invalid-credential"))
+        setAuthError("Wrong email or password.")
+      else if (msg.includes("user-not-found")) setAuthError("No account found. Try signing up.")
+      else if (msg.includes("weak-password")) setAuthError("Password must be at least 6 characters.")
+      else setAuthError(msg)
+      setSubmitting(false)
     }
   }
 
@@ -690,21 +715,68 @@ function PlayerGate({
   if (!user) {
     return (
       <div className="fixed inset-0 bg-bg-deep flex items-center justify-center">
-        <div className="text-center space-y-6">
-          <div className="space-y-2">
+        <form onSubmit={handleSubmit} className="w-full max-w-xs px-6 space-y-5">
+          <div className="text-center space-y-2">
             <Map className="w-10 h-10 text-gold mx-auto" />
             <h1 className="font-[family-name:var(--font-display)] text-2xl text-gold">
               Thornhaven
             </h1>
-            <p className="text-sm text-text-muted">Sign in to join as a player</p>
+            <p className="text-sm text-text-muted">
+              {isSignUp ? "Create your account" : "Sign in to play"}
+            </p>
           </div>
+
+          <div className="space-y-3">
+            {isSignUp && (
+              <input
+                type="text"
+                value={displayName}
+                onChange={(e) => setDisplayName(e.target.value)}
+                className="w-full text-sm bg-bg-surface border border-gold/30 rounded-lg px-4 py-2.5 text-parchment focus:outline-none focus:border-gold placeholder:text-text-muted/50"
+                placeholder="Display name"
+              />
+            )}
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full text-sm bg-bg-surface border border-gold/30 rounded-lg px-4 py-2.5 text-parchment focus:outline-none focus:border-gold placeholder:text-text-muted/50"
+              placeholder="Email"
+              autoFocus
+            />
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full text-sm bg-bg-surface border border-gold/30 rounded-lg px-4 py-2.5 text-parchment focus:outline-none focus:border-gold placeholder:text-text-muted/50"
+              placeholder="Password"
+            />
+          </div>
+
+          {authError && <p className="text-danger text-xs text-center">{authError}</p>}
+
           <button
-            onClick={handleSignIn}
-            className="px-6 py-3 rounded-lg bg-gold/15 text-gold border border-gold/25 hover:bg-gold/25 cursor-pointer transition-colors flex items-center gap-2 mx-auto"
+            type="submit"
+            disabled={submitting || !email || !password || (isSignUp && !displayName)}
+            className="w-full px-6 py-2.5 rounded-lg bg-gold/15 text-gold border border-gold/25 hover:bg-gold/25 disabled:opacity-30 cursor-pointer transition-colors text-sm font-medium"
           >
-            Sign in with Google
+            {submitting ? "..." : isSignUp ? "Sign Up" : "Sign In"}
           </button>
-        </div>
+
+          <p className="text-center text-xs text-text-muted">
+            {isSignUp ? "Already have an account?" : "Don't have an account?"}{" "}
+            <button
+              type="button"
+              onClick={() => {
+                setIsSignUp(!isSignUp)
+                setAuthError(null)
+              }}
+              className="text-gold hover:text-gold-light cursor-pointer"
+            >
+              {isSignUp ? "Sign In" : "Sign Up"}
+            </button>
+          </p>
+        </form>
       </div>
     )
   }
