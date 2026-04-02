@@ -10,6 +10,7 @@ import { ABILITY_LABELS } from "../../types/character"
 import type { AbilityKey } from "../../types/character"
 import Tooltip from "./Tooltip"
 import SpellSelection from "./SpellSelection"
+import { getSubclassesForClass } from "../../data/subclasses"
 
 interface ClassStepProps {
   classes: SrdReference[]
@@ -436,6 +437,93 @@ export default function ClassStep({ classes, skills, state, onChange }: ClassSte
               </p>
             </div>
           )}
+
+          {/* Subclass selection */}
+          {(() => {
+            const availableSubclasses = getSubclassesForClass(classDetail.index)
+            if (availableSubclasses.length === 0) return null
+            const selectedSubclass = availableSubclasses.find(
+              (s) => s.index === state.subclass?.index,
+            )
+            return (
+              <div className="border-t border-bg-elevated/30 pt-4 space-y-3">
+                <h4 className="text-parchment text-xs uppercase tracking-wider">
+                  Subclass
+                  <span className="text-text-muted text-[10px] normal-case tracking-normal ml-2">
+                    (chosen at level {availableSubclasses[0].subclassLevel})
+                  </span>
+                </h4>
+                <div className="grid grid-cols-2 gap-2">
+                  {availableSubclasses.map((sub) => {
+                    const isSelected = state.subclass?.index === sub.index
+                    return (
+                      <button
+                        key={sub.index}
+                        type="button"
+                        onClick={() =>
+                          onChange({
+                            subclass: isSelected
+                              ? undefined
+                              : { index: sub.index, name: sub.name, url: "" },
+                          })
+                        }
+                        className={`p-3 rounded-xl text-left text-xs transition-all duration-200 cursor-pointer border ${
+                          isSelected
+                            ? "border-gold/50 bg-gold/10 text-gold"
+                            : "border-bg-elevated/50 bg-bg-surface/40 text-parchment-dim hover:border-gold/20 hover:bg-bg-surface/60"
+                        }`}
+                      >
+                        <span className="font-medium text-sm">{sub.name}</span>
+                        <p className="text-text-muted text-[10px] mt-1 line-clamp-2">
+                          {sub.description}
+                        </p>
+                      </button>
+                    )
+                  })}
+                </div>
+
+                {/* Selected subclass details */}
+                {selectedSubclass && (
+                  <div className="p-4 rounded-xl bg-bg-surface/40 border border-gold/15 space-y-3">
+                    <h5 className="font-[family-name:var(--font-display)] text-gold text-sm">
+                      {selectedSubclass.name}
+                    </h5>
+                    <p className="text-parchment-dim text-xs leading-relaxed">
+                      {selectedSubclass.description}
+                    </p>
+                    {selectedSubclass.spellcasting && (
+                      <div className="flex items-center gap-2 text-[10px] text-purple-400 bg-purple-500/10 border border-purple-500/20 rounded-lg px-2.5 py-1.5">
+                        <span>Spellcasting: {selectedSubclass.spellcasting.ability}</span>
+                      </div>
+                    )}
+                    <div className="space-y-2">
+                      <h6 className="text-text-muted text-[10px] uppercase tracking-wider">
+                        Features
+                      </h6>
+                      {selectedSubclass.features.map((feat) => (
+                        <div
+                          key={feat.name}
+                          className="p-2.5 rounded-lg bg-bg-deep/40 border border-bg-elevated/30"
+                        >
+                          <div className="flex items-baseline justify-between mb-1">
+                            <span className="text-parchment text-xs font-medium">
+                              {feat.name}
+                            </span>
+                            <span className="text-text-muted text-[10px]">
+                              Level {feat.level}
+                            </span>
+                          </div>
+                          <p className="text-text-muted text-[10px] leading-relaxed">
+                            {feat.description}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )
+          })()}
 
           {/* Spell selection for casters */}
           {classDetail.spellcasting && (

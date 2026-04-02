@@ -107,6 +107,28 @@ export interface SrdTrait {
   desc: string[]
 }
 
+// --- Subclass Data ---
+
+export interface SubclassFeature {
+  name: string
+  level: number
+  description: string
+}
+
+export interface SubclassData {
+  index: string
+  name: string
+  className: string
+  classIndex: string
+  subclassLevel: number
+  description: string
+  features: SubclassFeature[]
+  spellcasting?: {
+    ability: string
+    description: string
+  }
+}
+
 // --- Ability Score Keys ---
 
 export type AbilityKey = "str" | "dex" | "con" | "int" | "wis" | "cha"
