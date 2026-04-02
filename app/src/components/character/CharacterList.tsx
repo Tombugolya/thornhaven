@@ -1,8 +1,9 @@
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { Plus, Trash2, Shield, Heart, Zap, LogOut } from "lucide-react"
-import { ref, onValue, off, remove, set, push } from "firebase/database"
+import { ref, onValue, remove, set, push } from "firebase/database"
 import { db } from "../../firebase"
 import type { PlayerCharacter } from "../../types/character"
+import { usePlayerCharacters } from "../../hooks/useCharacterData"
 import CharacterWizard from "./CharacterWizard"
 import Particles from "../Particles"
 
@@ -19,18 +20,9 @@ export default function CharacterList({
   onSelectCharacter,
   onSignOut,
 }: CharacterListProps) {
-  const [characters, setCharacters] = useState<PlayerCharacter[]>([])
+  const { characters, isLoading } = usePlayerCharacters(userId)
   const [showWizard, setShowWizard] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
-
-  useEffect(() => {
-    const charsRef = ref(db, `players/${userId}/characters`)
-    onValue(charsRef, (snap) => {
-      const data = snap.val() as Record<string, PlayerCharacter> | null
-      setCharacters(data ? Object.values(data) : [])
-    })
-    return () => off(charsRef)
-  }, [userId])
 
   const handleCreateCharacter = async (
     character: PlayerCharacter,
@@ -114,7 +106,12 @@ export default function CharacterList({
         </button>
 
         {/* Character list */}
-        {characters.length > 0 ? (
+        {isLoading ? (
+          <div className="flex flex-col items-center py-12 gap-3">
+            <div className="w-8 h-8 border-2 border-gold/30 border-t-gold rounded-full animate-spin" />
+            <p className="text-text-muted text-xs">Loading your heroes...</p>
+          </div>
+        ) : characters.length > 0 ? (
           <div className="space-y-3">
             {characters.map((char) => (
               <div

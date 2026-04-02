@@ -65,9 +65,11 @@ const tabs: { id: string; label: string; icon: LucideIcon }[] = [
 // --- Player Join Screen ---
 function PlayerJoin({
   onJoin,
+  onBack,
   characterName,
 }: {
   onJoin: (code: string) => void
+  onBack: () => void
   characterName: string
 }) {
   const [code, setCode] = useState("")
@@ -130,6 +132,12 @@ function PlayerJoin({
           className="w-full px-6 py-2.5 rounded-lg bg-gold/15 text-gold border border-gold/25 hover:bg-gold/25 disabled:opacity-30 cursor-pointer transition-colors text-sm font-medium"
         >
           {checking ? "Checking..." : "Join"}
+        </button>
+        <button
+          onClick={onBack}
+          className="text-xs text-text-muted hover:text-parchment transition-colors cursor-pointer"
+        >
+          Back to characters
         </button>
       </div>
     </div>
@@ -483,6 +491,7 @@ function PlayerGate({
     user: User
     character: PlayerCharacter
     onSignOut: () => void
+    onBackToCharacters: () => void
   }) => React.ReactNode
 }) {
   const [user, setUser] = useState<User | null>(null)
@@ -617,7 +626,12 @@ function PlayerGate({
     )
   }
 
-  return children({ user, character, onSignOut: handleSignOut })
+  return children({
+    user,
+    character,
+    onSignOut: handleSignOut,
+    onBackToCharacters: () => setCharacter(null),
+  })
 }
 
 // --- Root App ---
@@ -628,11 +642,12 @@ export default function App() {
   if (route === "join" || (route === "play" && !code)) {
     return (
       <PlayerGate>
-        {({ character }) => (
+        {({ character, onBackToCharacters }) => (
           <PlayerJoin
             onJoin={(roomCode) => {
               navigate(`#/play/${roomCode}`)
             }}
+            onBack={onBackToCharacters}
             characterName={character.name}
           />
         )}

@@ -1,11 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from "react"
-import type {
-  WizardState,
-  PlayerCharacter,
-  SrdReference,
-  SrdSkill,
-  EquipmentItem,
-} from "../../types/character"
+import type { WizardState, PlayerCharacter, EquipmentItem } from "../../types/character"
 import {
   INITIAL_WIZARD_STATE,
   ABILITY_KEYS,
@@ -14,7 +8,7 @@ import {
   POINT_BUY_COSTS,
   POINT_BUY_TOTAL,
 } from "../../types/character"
-import { preloadCharacterCreationData } from "../../services/srd"
+import { useCharacterCreationData } from "../../hooks/useCharacterData"
 import {
   computeRacialBonuses,
   applyBonuses,
@@ -43,32 +37,8 @@ const STEP_NAMES = ["Race", "Class", "Abilities", "Details", "Review"]
 
 export default function CharacterWizard({ onComplete, onCancel }: CharacterWizardProps) {
   const [state, setState] = useState<WizardState>(INITIAL_WIZARD_STATE)
-  const [races, setRaces] = useState<SrdReference[]>([])
-  const [classes, setClasses] = useState<SrdReference[]>([])
-  const [skills, setSkills] = useState<SrdSkill[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-
-  useEffect(() => {
-    let cancelled = false
-    preloadCharacterCreationData()
-      .then((data) => {
-        if (cancelled) return
-        setRaces(data.races)
-        setClasses(data.classes)
-        setSkills(data.skills)
-        setLoading(false)
-      })
-      .catch((err: unknown) => {
-        if (cancelled) return
-        const message = err instanceof Error ? err.message : "Failed to load game data"
-        setError(message)
-        setLoading(false)
-      })
-    return () => {
-      cancelled = true
-    }
-  }, [])
+  const { races, classes, skills, isLoading: loading, error: queryError } = useCharacterCreationData()
+  const error = queryError ? (queryError instanceof Error ? queryError.message : "Failed to load game data") : null
 
   // Warn on page refresh/close while wizard is open
   useEffect(() => {
