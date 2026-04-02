@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from "react"
+import { useState, useEffect, useCallback, useMemo, useRef } from "react"
 import type { WizardState, PlayerCharacter, EquipmentItem } from "../../types/character"
 import {
   INITIAL_WIZARD_STATE,
@@ -95,15 +95,19 @@ export default function CharacterWizard({ onComplete, onCancel }: CharacterWizar
     }
   }, [state])
 
+  const mainRef = useRef<HTMLElement>(null)
+
   const goNext = useCallback(() => {
     if (state.step < 4 && canAdvance) {
       setState((prev) => ({ ...prev, step: prev.step + 1 }))
+      mainRef.current?.scrollTo({ top: 0 })
     }
   }, [state.step, canAdvance])
 
   const goBack = useCallback(() => {
     if (state.step > 0) {
       setState((prev) => ({ ...prev, step: prev.step - 1 }))
+      mainRef.current?.scrollTo({ top: 0 })
     }
   }, [state.step])
 
@@ -260,7 +264,7 @@ export default function CharacterWizard({ onComplete, onCancel }: CharacterWizar
       </header>
 
       {/* Step content */}
-      <main className="relative flex-1 overflow-y-auto bg-[radial-gradient(ellipse_at_top,_rgba(201,162,39,0.03)_0%,_transparent_70%)]">
+      <main ref={mainRef} className="relative flex-1 overflow-y-auto bg-[radial-gradient(ellipse_at_top,_rgba(201,162,39,0.03)_0%,_transparent_70%)]">
         <Particles type="dust" accentColor="#c9a227" />
         <div
           key={state.step}
