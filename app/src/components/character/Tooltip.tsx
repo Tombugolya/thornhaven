@@ -47,7 +47,7 @@ export default function Tooltip({ text, children }: TooltipProps) {
         <div
           ref={tooltipRef}
           role="tooltip"
-          className="absolute z-50 bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 rounded-lg text-xs text-parchment whitespace-normal max-w-52 text-center pointer-events-none"
+          className="absolute z-50 bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 rounded-lg text-xs text-parchment whitespace-normal min-w-48 max-w-72 text-center pointer-events-none"
           style={{
             backgroundColor: "rgba(20, 16, 12, 0.95)",
             border: "1px solid rgba(201, 162, 39, 0.3)",
