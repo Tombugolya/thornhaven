@@ -98,8 +98,13 @@ export async function fetchSpell(index: string): Promise<SrdSpellDetail> {
 // --- Skills ---
 
 export async function fetchSkills(): Promise<SrdSkill[]> {
+  if (hasBackend) {
+    // Backend returns full skill details in one call
+    const data = await fetchJson<{ count: number; results: SrdSkill[] }>("/skills")
+    return data.results
+  }
+  // Fallback: fetch list then each skill individually from SRD
   const data = await fetchJson<SrdListResponse>("/skills")
-  // Fetch full details for each skill (need ability_score mapping)
   const skills = await Promise.all(
     data.results.map((s) => fetchJson<SrdSkill>(`/skills/${s.index}`)),
   )
