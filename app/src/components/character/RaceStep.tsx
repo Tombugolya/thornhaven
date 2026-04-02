@@ -1,7 +1,8 @@
-import { useState, useCallback, useMemo } from "react"
-import type { SrdReference, SrdRace, WizardState } from "../../types/character"
+import { useState, useCallback, useMemo, useEffect } from "react"
+import type { SrdReference, SrdRace, SrdTrait, WizardState } from "../../types/character"
 import { SRD_ABILITY_MAP, ABILITY_LABELS } from "../../types/character"
-import { fetchRace, fetchSubrace } from "../../services/srd"
+import { fetchRace, fetchSubrace, fetchTrait } from "../../services/srd"
+import Tooltip from "./Tooltip"
 
 interface RaceStepProps {
   races: SrdReference[]
@@ -188,8 +189,44 @@ function summarizeBonuses(race: SrdRace): string {
 export default function RaceStep({ races, state, onChange }: RaceStepProps) {
   const [loadingRace, setLoadingRace] = useState<string | null>(null)
   const [loadingSubrace, setLoadingSubrace] = useState<string | null>(null)
+  const [traitDetails, setTraitDetails] = useState<SrdTrait[]>([])
+  const [expandedTraits, setExpandedTraits] = useState<Set<string>>(new Set())
 
   const selectedIndex = state.race?.index ?? null
+
+  // Fetch trait descriptions when race changes
+  useEffect(() => {
+    if (!state.race || state.race.traits.length === 0) {
+      setTraitDetails([])
+      setExpandedTraits(new Set())
+      return
+    }
+    let cancelled = false
+    Promise.all(state.race.traits.map((t) => fetchTrait(t.index)))
+      .then((details) => {
+        if (!cancelled) {
+          setTraitDetails(details)
+        }
+      })
+      .catch(() => {
+        // Trait descriptions are supplementary — fail silently
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [state.race])
+
+  const toggleTrait = useCallback((traitIndex: string) => {
+    setExpandedTraits((prev) => {
+      const next = new Set(prev)
+      if (next.has(traitIndex)) {
+        next.delete(traitIndex)
+      } else {
+        next.add(traitIndex)
+      }
+      return next
+    })
+  }, [])
 
   const handleSelectRace = useCallback(
     async (ref: SrdReference) => {
@@ -258,6 +295,9 @@ export default function RaceStep({ races, state, onChange }: RaceStepProps) {
       </div>
 
       {/* Race grid */}
+      {!selectedIndex && (
+        <p className="text-text-muted/60 text-xs italic">Click to select a race</p>
+      )}
       <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
         {races.map((ref) => {
           const isSelected = selectedIndex === ref.index
@@ -318,7 +358,7 @@ export default function RaceStep({ races, state, onChange }: RaceStepProps) {
           {/* Ability bonuses */}
           <div>
             <h4 className="text-parchment text-xs uppercase tracking-wider mb-2">
-              Ability Bonuses
+              <Tooltip text="Added to your base ability score">Ability Bonuses</Tooltip>
             </h4>
             <div className="flex flex-wrap gap-2">
               {allBonuses.map((b, i) => (
@@ -336,11 +376,15 @@ export default function RaceStep({ races, state, onChange }: RaceStepProps) {
           {/* Speed & Size */}
           <div className="flex gap-6">
             <div>
-              <span className="text-text-muted text-xs uppercase tracking-wider">Speed</span>
+              <span className="text-text-muted text-xs uppercase tracking-wider">
+                <Tooltip text="How far you can move in one turn (in feet)">Speed</Tooltip>
+              </span>
               <p className="text-parchment text-sm">{raceDetail.speed} ft</p>
             </div>
             <div>
-              <span className="text-text-muted text-xs uppercase tracking-wider">Size</span>
+              <span className="text-text-muted text-xs uppercase tracking-wider">
+                <Tooltip text="Medium creatures are roughly 4-8 feet tall">Size</Tooltip>
+              </span>
               <p className="text-parchment text-sm">{raceDetail.size}</p>
             </div>
           </div>
@@ -356,18 +400,47 @@ export default function RaceStep({ races, state, onChange }: RaceStepProps) {
           {/* Traits */}
           {raceDetail.traits.length > 0 && (
             <div>
-              <h4 className="text-parchment text-xs uppercase tracking-wider mb-1">
+              <h4 className="text-parchment text-xs uppercase tracking-wider mb-2">
                 Racial Traits
               </h4>
-              <div className="flex flex-wrap gap-2">
-                {raceDetail.traits.map((t) => (
-                  <span
-                    key={t.index}
-                    className="px-2.5 py-1 rounded-lg bg-bg-elevated/40 border border-bg-elevated/50 text-parchment text-xs"
-                  >
-                    {t.name}
-                  </span>
-                ))}
+              <div className="space-y-2">
+                {raceDetail.traits.map((t) => {
+                  const detail = traitDetails.find((d) => d.index === t.index)
+                  const isExpanded = expandedTraits.has(t.index)
+                  return (
+                    <div key={t.index}>
+                      <button
+                        type="button"
+                        onClick={() => toggleTrait(t.index)}
+                        className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-bg-elevated/40 border border-bg-elevated/50 text-parchment text-xs cursor-pointer hover:bg-bg-elevated/60 hover:border-gold/20 transition-colors w-full text-left"
+                      >
+                        <span
+                          className="text-gold/50 text-[10px] transition-transform duration-200 shrink-0"
+                          style={{
+                            display: "inline-block",
+                            transform: isExpanded ? "rotate(90deg)" : "rotate(0deg)",
+                          }}
+                        >
+                          &#9654;
+                        </span>
+                        <span className="font-medium">{t.name}</span>
+                        {!detail && (
+                          <span className="text-text-muted/40 text-[10px] ml-auto">loading...</span>
+                        )}
+                      </button>
+                      {isExpanded && detail && (
+                        <div
+                          className="mt-1 ml-5 px-3 py-2 rounded-lg bg-bg-elevated/20 border border-bg-elevated/30 text-text-muted text-xs leading-relaxed space-y-1"
+                          style={{ animation: "loadFadeIn 0.2s ease-out" }}
+                        >
+                          {detail.desc.map((paragraph, i) => (
+                            <p key={i}>{paragraph}</p>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
               </div>
             </div>
           )}
@@ -375,7 +448,9 @@ export default function RaceStep({ races, state, onChange }: RaceStepProps) {
           {/* Subraces */}
           {raceDetail.subraces.length > 0 && (
             <div>
-              <h4 className="text-parchment text-xs uppercase tracking-wider mb-2">Subrace</h4>
+              <h4 className="text-parchment text-xs uppercase tracking-wider mb-2">
+                Subrace <span className="text-gold">*</span>
+              </h4>
               <div className="flex gap-2 flex-wrap">
                 {raceDetail.subraces.map((sr) => {
                   const isSubSelected = state.subrace?.index === sr.index

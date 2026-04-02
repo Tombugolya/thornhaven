@@ -516,11 +516,13 @@ function PlayerGate({
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Authentication failed"
-      if (msg.includes("email-already-in-use")) setAuthError("Email already in use. Try signing in.")
+      if (msg.includes("email-already-in-use"))
+        setAuthError("Email already in use. Try signing in.")
       else if (msg.includes("wrong-password") || msg.includes("invalid-credential"))
         setAuthError("Wrong email or password.")
       else if (msg.includes("user-not-found")) setAuthError("No account found. Try signing up.")
-      else if (msg.includes("weak-password")) setAuthError("Password must be at least 6 characters.")
+      else if (msg.includes("weak-password"))
+        setAuthError("Password must be at least 6 characters.")
       else setAuthError(msg)
       setSubmitting(false)
     }
@@ -643,7 +645,12 @@ export default function App() {
     return (
       <PlayerGate>
         {({ character }) => (
-          <BroadcastProvider role="player" roomCode={code} playerName={character.name} playerCharacter={character}>
+          <BroadcastProvider
+            role="player"
+            roomCode={code}
+            playerName={character.name}
+            playerCharacter={character}
+          >
             <CampaignProvider>
               <PlayerView />
             </CampaignProvider>

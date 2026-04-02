@@ -177,7 +177,8 @@ export default function CharacterList({
               No adventurers yet
             </p>
             <p className="text-text-muted text-xs max-w-xs mx-auto">
-              Every great story starts with a hero. Create your first character to begin your journey.
+              Every great story starts with a hero. Create your first character to begin your
+              journey.
             </p>
           </div>
         )}

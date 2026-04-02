@@ -8,7 +8,11 @@ const LOADING_EMBERS = Array.from({ length: 12 }, () => ({
   delay: `${Math.random() * 3}s`,
 }))
 
-export default function LoadingScreen({ message = "Consulting the ancient tomes" }: { message?: string }) {
+export default function LoadingScreen({
+  message = "Consulting the ancient tomes",
+}: {
+  message?: string
+}) {
   return (
     <div className="fixed inset-0 bg-bg-deep flex items-center justify-center overflow-hidden">
       {LOADING_EMBERS.map((ember, i) => (
@@ -38,8 +42,25 @@ export default function LoadingScreen({ message = "Consulting the ancient tomes"
             viewBox="0 0 100 100"
             style={{ animation: "runeRotate 12s linear infinite" }}
           >
-            <circle cx="50" cy="50" r="46" fill="none" stroke="#c9a227" strokeWidth="0.5" opacity="0.3" />
-            <circle cx="50" cy="50" r="46" fill="none" stroke="#c9a227" strokeWidth="1" opacity="0.6" strokeDasharray="8 12 4 16 6 14" />
+            <circle
+              cx="50"
+              cy="50"
+              r="46"
+              fill="none"
+              stroke="#c9a227"
+              strokeWidth="0.5"
+              opacity="0.3"
+            />
+            <circle
+              cx="50"
+              cy="50"
+              r="46"
+              fill="none"
+              stroke="#c9a227"
+              strokeWidth="1"
+              opacity="0.6"
+              strokeDasharray="8 12 4 16 6 14"
+            />
             {[0, 60, 120, 180, 240, 300].map((angle) => (
               <text
                 key={angle}
@@ -62,8 +83,25 @@ export default function LoadingScreen({ message = "Consulting the ancient tomes"
             viewBox="0 0 100 100"
             style={{ animation: "runeRotateReverse 8s linear infinite" }}
           >
-            <circle cx="50" cy="50" r="32" fill="none" stroke="#c9a227" strokeWidth="0.5" opacity="0.2" />
-            <circle cx="50" cy="50" r="32" fill="none" stroke="#c9a227" strokeWidth="0.8" opacity="0.5" strokeDasharray="4 8 6 10" />
+            <circle
+              cx="50"
+              cy="50"
+              r="32"
+              fill="none"
+              stroke="#c9a227"
+              strokeWidth="0.5"
+              opacity="0.2"
+            />
+            <circle
+              cx="50"
+              cy="50"
+              r="32"
+              fill="none"
+              stroke="#c9a227"
+              strokeWidth="0.8"
+              opacity="0.5"
+              strokeDasharray="4 8 6 10"
+            />
           </svg>
 
           <svg
@@ -71,10 +109,37 @@ export default function LoadingScreen({ message = "Consulting the ancient tomes"
             viewBox="0 0 100 100"
             style={{ animation: "runePulse 3s ease-in-out infinite" }}
           >
-            <polygon points="50,26 66,50 50,74 34,50" fill="none" stroke="#c9a227" strokeWidth="1" />
-            <polygon points="50,30 62,50 50,70 38,50" fill="none" stroke="#c9a227" strokeWidth="0.5" opacity="0.4" />
-            <line x1="50" y1="26" x2="50" y2="74" stroke="#c9a227" strokeWidth="0.3" opacity="0.3" />
-            <line x1="34" y1="50" x2="66" y2="50" stroke="#c9a227" strokeWidth="0.3" opacity="0.3" />
+            <polygon
+              points="50,26 66,50 50,74 34,50"
+              fill="none"
+              stroke="#c9a227"
+              strokeWidth="1"
+            />
+            <polygon
+              points="50,30 62,50 50,70 38,50"
+              fill="none"
+              stroke="#c9a227"
+              strokeWidth="0.5"
+              opacity="0.4"
+            />
+            <line
+              x1="50"
+              y1="26"
+              x2="50"
+              y2="74"
+              stroke="#c9a227"
+              strokeWidth="0.3"
+              opacity="0.3"
+            />
+            <line
+              x1="34"
+              y1="50"
+              x2="66"
+              y2="50"
+              stroke="#c9a227"
+              strokeWidth="0.3"
+              opacity="0.3"
+            />
             <circle cx="50" cy="50" r="2" fill="#c9a227" opacity="0.8" />
           </svg>
         </div>

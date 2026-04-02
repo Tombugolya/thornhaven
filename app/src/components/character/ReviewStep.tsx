@@ -12,6 +12,7 @@ import {
   classSavingThrows,
   classBaseProficiencies,
 } from "../../services/calculations"
+import Tooltip from "./Tooltip"
 
 interface ReviewStepProps {
   state: WizardState
@@ -190,7 +191,6 @@ export default function ReviewStep({ state }: ReviewStepProps) {
               <p className="text-parchment text-sm mt-1">
                 {race.name}
                 {subrace ? ` (${subrace.name})` : ""} {cls.name}
-                {state.subclass ? ` \u2014 ${state.subclass.name}` : ""}
               </p>
             </div>
             <div className="text-right">
@@ -209,10 +209,26 @@ export default function ReviewStep({ state }: ReviewStepProps) {
         {/* Derived stats row */}
         <div className="grid grid-cols-4 border-b border-gold/15">
           {[
-            { label: "Hit Points", value: derivedStats.hp },
-            { label: "Armor Class", value: derivedStats.ac },
-            { label: "Speed", value: `${derivedStats.speed} ft` },
-            { label: "Prof. Bonus", value: `+${derivedStats.profBonus}` },
+            {
+              label: "Hit Points",
+              value: derivedStats.hp,
+              tip: "The die you roll when gaining HP on level up",
+            },
+            {
+              label: "Armor Class",
+              value: derivedStats.ac,
+              tip: "Armor Class \u2014 how hard you are to hit",
+            },
+            {
+              label: "Speed",
+              value: `${derivedStats.speed} ft`,
+              tip: "How far you can move in one turn (in feet)",
+            },
+            {
+              label: "Prof. Bonus",
+              value: `+${derivedStats.profBonus}`,
+              tip: "Added to attacks, saves, and skills you're proficient in",
+            },
           ].map((stat) => (
             <div
               key={stat.label}
@@ -220,7 +236,7 @@ export default function ReviewStep({ state }: ReviewStepProps) {
             >
               <div className="text-gold text-xl font-bold font-mono">{stat.value}</div>
               <div className="text-text-muted text-[10px] uppercase tracking-wider mt-0.5">
-                {stat.label}
+                <Tooltip text={stat.tip}>{stat.label}</Tooltip>
               </div>
             </div>
           ))}
@@ -264,7 +280,9 @@ export default function ReviewStep({ state }: ReviewStepProps) {
 
         {/* Saving throws */}
         <div className="px-6 py-4 border-b border-gold/15">
-          <h4 className="text-parchment text-xs uppercase tracking-wider mb-3">Saving Throws</h4>
+          <h4 className="text-parchment text-xs uppercase tracking-wider mb-3">
+            <Tooltip text="Ability checks to resist effects like spells">Saving Throws</Tooltip>
+          </h4>
           <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
             {ABILITY_KEYS.map((key) => {
               const isProficient = savingThrows.includes(key)

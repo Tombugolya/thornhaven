@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState, useEffect, useRef } from "react"
 import type { WizardState, AbilityKey, AbilityScores } from "../../types/character"
+import Tooltip from "./Tooltip"
 import {
   ABILITY_KEYS,
   ABILITY_LABELS,
@@ -252,26 +253,39 @@ export default function AbilityScoreStep({ state, onChange }: AbilityScoreStepPr
       {/* Method description */}
       <div className="px-4 py-3 rounded-xl bg-bg-surface/40 border border-bg-elevated/30 text-xs text-text-muted">
         {state.method === "standard-array" && (
-          <p>
-            Assign the values{" "}
-            <span className="text-parchment font-mono">15, 14, 13, 12, 10, 8</span> to your six
-            abilities. Each value can only be used once. Quick and balanced.
-          </p>
+          <>
+            <p>
+              Assign the values{" "}
+              <span className="text-parchment font-mono">15, 14, 13, 12, 10, 8</span> to your six
+              abilities. Each value can only be used once. Quick and balanced.
+            </p>
+            <p className="text-gold/60 italic mt-1">
+              Use the dropdowns below to assign each value to an ability.
+            </p>
+          </>
         )}
         {state.method === "point-buy" && (
-          <p>
-            Spend <span className="text-parchment font-bold">{POINT_BUY_TOTAL} points</span> to set
-            scores between <span className="text-parchment font-mono">8</span> and{" "}
-            <span className="text-parchment font-mono">15</span>. Higher scores cost more points.
-            All scores start at 8.
-          </p>
+          <>
+            <p>
+              Spend <span className="text-parchment font-bold">{POINT_BUY_TOTAL} points</span> to
+              set scores between <span className="text-parchment font-mono">8</span> and{" "}
+              <span className="text-parchment font-mono">15</span>. Higher scores cost more points.
+              All scores start at 8.
+            </p>
+            <p className="text-gold/60 italic mt-1">
+              Use the + and - buttons to adjust each score. Watch your remaining points.
+            </p>
+          </>
         )}
         {state.method === "manual" && (
-          <p>
-            Enter any values between <span className="text-parchment font-mono">3</span> and{" "}
-            <span className="text-parchment font-mono">20</span>. Use this for rolled stats or
-            homebrew rules.
-          </p>
+          <>
+            <p>
+              Enter any values between <span className="text-parchment font-mono">3</span> and{" "}
+              <span className="text-parchment font-mono">20</span>. Use this for rolled stats or
+              homebrew rules.
+            </p>
+            <p className="text-gold/60 italic mt-1">Type a number directly into each field.</p>
+          </>
         )}
       </div>
 
@@ -389,9 +403,11 @@ export default function AbilityScoreStep({ state, onChange }: AbilityScoreStepPr
 
               {/* Racial bonus badge */}
               {bonus !== 0 && (
-                <span className="px-2 py-0.5 rounded-lg bg-gold/10 border border-gold/20 text-gold text-xs font-medium shrink-0">
-                  +{bonus}
-                </span>
+                <Tooltip text="Racial bonus added to your base ability score">
+                  <span className="px-2 py-0.5 rounded-lg bg-gold/10 border border-gold/20 text-gold text-xs font-medium shrink-0">
+                    +{bonus}
+                  </span>
+                </Tooltip>
               )}
 
               {/* Final score + modifier */}

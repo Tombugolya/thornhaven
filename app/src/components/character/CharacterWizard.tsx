@@ -92,11 +92,7 @@ export default function CharacterWizard({ onComplete, onCancel }: CharacterWizar
         // Subclass required for classes that get it at level 1 (Cleric, Sorcerer)
         const subclassLevel =
           state.class.index === "cleric" || state.class.index === "sorcerer" ? 1 : 0
-        if (
-          subclassLevel === 1 &&
-          state.class.subclasses.length > 0 &&
-          !state.subclass
-        )
+        if (subclassLevel === 1 && state.class.subclasses.length > 0 && !state.subclass)
           return false
         return true
       }

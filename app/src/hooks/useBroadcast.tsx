@@ -104,9 +104,7 @@ function getStateUpdates(
   }
 }
 
-function toCharacterInfo(
-  pc: PlayerCharacter,
-): PlayerCharacterInfo {
+function toCharacterInfo(pc: PlayerCharacter): PlayerCharacterInfo {
   return {
     name: pc.name,
     raceName: pc.raceName,
