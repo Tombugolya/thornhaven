@@ -21,6 +21,7 @@ import {
   pointBuyRemaining,
 } from "../../services/calculations"
 import LoadingScreen from "../LoadingScreen"
+import Particles from "../Particles"
 import RaceStep from "./RaceStep"
 import ClassStep from "./ClassStep"
 import AbilityScoreStep from "./AbilityScoreStep"
@@ -105,7 +106,9 @@ export default function CharacterWizard({ onComplete, onCancel }: CharacterWizar
         return ABILITY_KEYS.every((k) => state.baseScores[k] >= 3 && state.baseScores[k] <= 20)
       }
       case 3:
-        return state.name.trim().length > 0 && state.background.length > 0 && state.alignment.length > 0
+        return (
+          state.name.trim().length > 0 && state.background.length > 0 && state.alignment.length > 0
+        )
       case 4:
         return true
       default:
@@ -222,9 +225,7 @@ export default function CharacterWizard({ onComplete, onCancel }: CharacterWizar
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 rounded-lg bg-gold/10 border border-gold/20 flex items-center justify-center">
-                <span className="text-gold text-sm">
-                  {state.step + 1}
-                </span>
+                <span className="text-gold text-sm">{state.step + 1}</span>
               </div>
               <div>
                 <h1 className="font-[family-name:var(--font-display)] text-gold text-lg tracking-wide">
@@ -254,8 +255,13 @@ export default function CharacterWizard({ onComplete, onCancel }: CharacterWizar
       </header>
 
       {/* Step content */}
-      <main className="flex-1 overflow-y-auto bg-[radial-gradient(ellipse_at_top,_rgba(201,162,39,0.03)_0%,_transparent_70%)]">
-        <div className="max-w-3xl mx-auto px-6 py-8">
+      <main className="relative flex-1 overflow-y-auto bg-[radial-gradient(ellipse_at_top,_rgba(201,162,39,0.03)_0%,_transparent_70%)]">
+        <Particles type="dust" accentColor="#c9a227" />
+        <div
+          key={state.step}
+          className="relative max-w-3xl mx-auto px-6 py-8"
+          style={{ animation: "wizardFadeIn 0.4s ease-out" }}
+        >
           {state.step === 0 && <RaceStep races={races} state={state} onChange={handleChange} />}
           {state.step === 1 && (
             <ClassStep classes={classes} skills={skills} state={state} onChange={handleChange} />

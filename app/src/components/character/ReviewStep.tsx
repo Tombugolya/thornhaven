@@ -109,32 +109,97 @@ export default function ReviewStep({ state }: ReviewStepProps) {
 
       {/* Character sheet card */}
       <div
-        className="rounded-2xl border border-gold/20 overflow-hidden"
+        className="relative rounded-2xl overflow-hidden"
         style={{
           background: "linear-gradient(180deg, rgba(201,162,39,0.04) 0%, rgba(20,16,12,0.8) 100%)",
           animation: "loadFadeIn 0.4s ease-out",
         }}
       >
+        {/* Decorative gold border */}
+        <div
+          className="absolute inset-0 rounded-2xl pointer-events-none"
+          style={{
+            border: "2px solid rgba(201,162,39,0.2)",
+            boxShadow: "inset 0 0 30px rgba(201,162,39,0.03), 0 0 20px rgba(201,162,39,0.05)",
+          }}
+        />
+
+        {/* Corner ornaments */}
+        <svg
+          className="absolute top-0 left-0 w-8 h-8 text-gold/30 pointer-events-none"
+          viewBox="0 0 32 32"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.5"
+        >
+          <path d="M2 2h10M2 2v10M2 2l8 8" />
+        </svg>
+        <svg
+          className="absolute top-0 right-0 w-8 h-8 text-gold/30 pointer-events-none"
+          viewBox="0 0 32 32"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.5"
+        >
+          <path d="M30 2H20M30 2v10M30 2l-8 8" />
+        </svg>
+        <svg
+          className="absolute bottom-0 left-0 w-8 h-8 text-gold/30 pointer-events-none"
+          viewBox="0 0 32 32"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.5"
+        >
+          <path d="M2 30h10M2 30V20M2 30l8-8" />
+        </svg>
+        <svg
+          className="absolute bottom-0 right-0 w-8 h-8 text-gold/30 pointer-events-none"
+          viewBox="0 0 32 32"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.5"
+        >
+          <path d="M30 30H20M30 30V20M30 30l-8-8" />
+        </svg>
+
+        {/* Animated shimmer across top */}
+        <div
+          className="absolute top-0 left-0 right-0 h-24 pointer-events-none overflow-hidden"
+          style={{ opacity: 0.4 }}
+        >
+          <div
+            className="absolute inset-0"
+            style={{
+              background:
+                "linear-gradient(105deg, transparent 40%, rgba(201,162,39,0.08) 45%, rgba(201,162,39,0.15) 50%, rgba(201,162,39,0.08) 55%, transparent 60%)",
+              animation: "reviewShimmer 4s ease-in-out infinite",
+            }}
+          />
+        </div>
+
         {/* Header */}
-        <div className="px-6 py-5 border-b border-gold/15">
+        <div className="relative px-6 py-6 border-b border-gold/15">
           <div className="flex items-baseline justify-between">
             <div>
-              <h3 className="font-[family-name:var(--font-display)] text-gold text-2xl tracking-wide">
+              <h3
+                className="font-[family-name:var(--font-display)] text-gold text-3xl tracking-wide"
+                style={{ textShadow: "0 0 20px rgba(201,162,39,0.2), 0 2px 4px rgba(0,0,0,0.3)" }}
+              >
                 {state.name || "Unnamed Hero"}
               </h3>
-              <p className="text-parchment text-sm mt-0.5">
+              <p className="text-parchment text-sm mt-1">
                 {race.name}
                 {subrace ? ` (${subrace.name})` : ""} {cls.name}
               </p>
             </div>
             <div className="text-right">
-              <span className="px-3 py-1 rounded-lg bg-gold/10 border border-gold/20 text-gold text-xs font-medium">
+              <span className="px-3 py-1.5 rounded-lg bg-gold/10 border border-gold/20 text-gold text-xs font-medium font-[family-name:var(--font-display)] tracking-wider">
                 Level 1
               </span>
             </div>
           </div>
           {(state.alignment || background) && (
-            <p className="text-text-muted text-xs mt-2">
+            <p className="text-text-muted text-xs mt-2 italic">
               {[state.alignment, background?.name].filter(Boolean).join(" \u2022 ")}
             </p>
           )}
@@ -160,20 +225,36 @@ export default function ReviewStep({ state }: ReviewStepProps) {
           ))}
         </div>
 
-        {/* Ability scores */}
-        <div className="px-6 py-4 border-b border-gold/15">
-          <h4 className="text-parchment text-xs uppercase tracking-wider mb-3">Ability Scores</h4>
-          <div className="grid grid-cols-6 gap-2">
+        {/* Ability scores - shield badges in 2x3 grid */}
+        <div className="relative px-6 py-5 border-b border-gold/15">
+          <h4 className="text-parchment text-xs uppercase tracking-wider mb-4 font-[family-name:var(--font-display)]">
+            Ability Scores
+          </h4>
+          <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
             {ABILITY_KEYS.map((key) => {
               const score = finalScores[key]
               return (
-                <div
-                  key={key}
-                  className="text-center p-2.5 rounded-xl bg-bg-surface/40 border border-bg-elevated/40"
-                >
-                  <div className="text-text-muted text-[10px] uppercase tracking-wider">{key}</div>
-                  <div className="text-parchment text-lg font-bold font-mono mt-0.5">{score}</div>
-                  <div className="text-gold text-xs font-medium">{formatModifier(score)}</div>
+                <div key={key} className="flex flex-col items-center">
+                  <div className="relative w-16 h-20 flex flex-col items-center justify-center">
+                    {/* Shield shape */}
+                    <svg className="absolute inset-0 w-full h-full" viewBox="0 0 64 80" fill="none">
+                      <path
+                        d="M32 2L4 14v24c0 16 12 26 28 38 16-12 28-22 28-38V14L32 2z"
+                        fill="rgba(201,162,39,0.06)"
+                        stroke="rgba(201,162,39,0.25)"
+                        strokeWidth="1.5"
+                      />
+                    </svg>
+                    <span className="relative text-parchment text-xl font-bold font-mono mt-1">
+                      {score}
+                    </span>
+                    <span className="relative text-gold text-[11px] font-medium">
+                      {formatModifier(score)}
+                    </span>
+                  </div>
+                  <span className="text-text-muted text-[10px] uppercase tracking-wider mt-1 font-[family-name:var(--font-display)]">
+                    {key}
+                  </span>
                 </div>
               )
             })}

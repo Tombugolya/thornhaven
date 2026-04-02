@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from "react"
+import { useCallback, useMemo, useState, useEffect, useRef } from "react"
 import type { WizardState, AbilityKey, AbilityScores } from "../../types/character"
 import {
   ABILITY_KEYS,
@@ -19,16 +19,138 @@ interface AbilityScoreStepProps {
   onChange: (updates: Partial<WizardState>) => void
 }
 
-const METHODS = [
+type MethodId = "standard-array" | "point-buy" | "manual"
+
+const METHODS: ReadonlyArray<{ id: MethodId; label: string }> = [
   { id: "standard-array", label: "Standard Array" },
   { id: "point-buy", label: "Point Buy" },
   { id: "manual", label: "Manual" },
-] as const
+]
+
+const abilityIcons: Record<AbilityKey, React.ReactElement> = {
+  str: (
+    <svg
+      width="20"
+      height="20"
+      viewBox="0 0 20 20"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M4 16l3-3M16 16l-3-3" />
+      <path d="M7 13l3-7 3 7" />
+      <path d="M6 10h8" />
+    </svg>
+  ),
+  dex: (
+    <svg
+      width="20"
+      height="20"
+      viewBox="0 0 20 20"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <circle cx="10" cy="6" r="3" />
+      <path d="M6 12c0 3 2 5 4 6 2-1 4-3 4-6" />
+      <path d="M8 10l2-1 2 1" />
+    </svg>
+  ),
+  con: (
+    <svg
+      width="20"
+      height="20"
+      viewBox="0 0 20 20"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M10 4c-3 0-6 2-6 5s3 6 6 8c3-2 6-5 6-8s-3-5-6-5z" />
+      <path d="M10 9v4M8 11h4" />
+    </svg>
+  ),
+  int: (
+    <svg
+      width="20"
+      height="20"
+      viewBox="0 0 20 20"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <circle cx="10" cy="10" r="6" />
+      <path d="M10 7v4M8 11h4" />
+      <path d="M7 5l1 2M13 5l-1 2" />
+    </svg>
+  ),
+  wis: (
+    <svg
+      width="20"
+      height="20"
+      viewBox="0 0 20 20"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M10 3c-4 0-7 3-7 6 0 2 1 3 3 4l1 4h6l1-4c2-1 3-2 3-4 0-3-3-6-7-6z" />
+      <path d="M8 17h4" />
+    </svg>
+  ),
+  cha: (
+    <svg
+      width="20"
+      height="20"
+      viewBox="0 0 20 20"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M10 3l2 4 4 1-3 3 1 4-4-2-4 2 1-4-3-3 4-1 2-4z" />
+    </svg>
+  ),
+}
+
+function useScoreFlash(scores: AbilityScores): Set<AbilityKey> {
+  const [flashing, setFlashing] = useState<Set<AbilityKey>>(new Set())
+  const prevScores = useRef(scores)
+
+  useEffect(() => {
+    const changed = new Set<AbilityKey>()
+    for (const key of ABILITY_KEYS) {
+      if (scores[key] !== prevScores.current[key]) {
+        changed.add(key)
+      }
+    }
+    prevScores.current = scores
+    if (changed.size > 0) {
+      setFlashing(changed)
+      const timer = setTimeout(() => setFlashing(new Set()), 400)
+      return () => clearTimeout(timer)
+    }
+    return undefined
+  }, [scores])
+
+  return flashing
+}
 
 // Cache scores per method so switching back restores them
 const methodScoreCache: Record<string, AbilityScores> = {}
 
 export default function AbilityScoreStep({ state, onChange }: AbilityScoreStepProps) {
+  const flashingKeys = useScoreFlash(state.baseScores)
+
   const racialBonuses = useMemo(() => {
     if (!state.race) return {}
     return computeRacialBonuses(state.race, state.subrace)
@@ -129,23 +251,24 @@ export default function AbilityScoreStep({ state, onChange }: AbilityScoreStepPr
       <div className="px-4 py-3 rounded-xl bg-bg-surface/40 border border-bg-elevated/30 text-xs text-text-muted">
         {state.method === "standard-array" && (
           <p>
-            Assign the values <span className="text-parchment font-mono">15, 14, 13, 12, 10, 8</span> to
-            your six abilities. Each value can only be used once. Quick and balanced.
+            Assign the values{" "}
+            <span className="text-parchment font-mono">15, 14, 13, 12, 10, 8</span> to your six
+            abilities. Each value can only be used once. Quick and balanced.
           </p>
         )}
         {state.method === "point-buy" && (
           <p>
-            Spend <span className="text-parchment font-bold">{POINT_BUY_TOTAL} points</span> to set scores
-            between <span className="text-parchment font-mono">8</span> and{" "}
-            <span className="text-parchment font-mono">15</span>. Higher scores cost more points. All
-            scores start at 8.
+            Spend <span className="text-parchment font-bold">{POINT_BUY_TOTAL} points</span> to set
+            scores between <span className="text-parchment font-mono">8</span> and{" "}
+            <span className="text-parchment font-mono">15</span>. Higher scores cost more points.
+            All scores start at 8.
           </p>
         )}
         {state.method === "manual" && (
           <p>
             Enter any values between <span className="text-parchment font-mono">3</span> and{" "}
-            <span className="text-parchment font-mono">20</span>. Use this for rolled stats or homebrew
-            rules.
+            <span className="text-parchment font-mono">20</span>. Use this for rolled stats or
+            homebrew rules.
           </p>
         )}
       </div>
@@ -177,12 +300,15 @@ export default function AbilityScoreStep({ state, onChange }: AbilityScoreStepPr
               key={key}
               className="flex items-center gap-3 px-4 py-3 rounded-xl bg-bg-surface/60 border border-bg-elevated/50"
             >
-              {/* Ability name */}
-              <div className="w-28 shrink-0">
-                <span className="font-[family-name:var(--font-display)] text-parchment text-sm">
-                  {ABILITY_LABELS[key]}
-                </span>
-                <span className="text-text-muted text-xs ml-1 uppercase">({key})</span>
+              {/* Ability icon + name */}
+              <div className="w-28 shrink-0 flex items-center gap-2">
+                <span className="text-gold/70 shrink-0">{abilityIcons[key]}</span>
+                <div>
+                  <span className="font-[family-name:var(--font-display)] text-parchment text-sm">
+                    {ABILITY_LABELS[key]}
+                  </span>
+                  <span className="text-text-muted text-xs ml-1 uppercase">({key})</span>
+                </div>
               </div>
 
               {/* Score input */}
@@ -220,7 +346,9 @@ export default function AbilityScoreStep({ state, onChange }: AbilityScoreStepPr
                       onClick={() => handleScoreChange(key, Math.min(15, base + 1))}
                       disabled={
                         base >= 15 ||
-                        remaining - ((POINT_BUY_COSTS[base + 1] ?? 0) - (POINT_BUY_COSTS[base] ?? 0)) < 0
+                        remaining -
+                          ((POINT_BUY_COSTS[base + 1] ?? 0) - (POINT_BUY_COSTS[base] ?? 0)) <
+                          0
                       }
                       className="w-7 h-7 rounded-lg bg-bg-elevated/40 border border-bg-elevated/50 text-parchment text-sm flex items-center justify-center hover:bg-bg-elevated/60 disabled:opacity-30 cursor-pointer disabled:cursor-not-allowed transition-colors"
                     >
@@ -255,8 +383,14 @@ export default function AbilityScoreStep({ state, onChange }: AbilityScoreStepPr
               )}
 
               {/* Final score + modifier */}
-              <div className="text-right shrink-0 w-20">
-                <span className="text-parchment text-sm font-bold font-mono">{final_}</span>
+              <div
+                className={`text-right shrink-0 w-20 transition-all duration-300 ${flashingKeys.has(key) ? "scale-110" : ""}`}
+              >
+                <span
+                  className={`text-sm font-bold font-mono transition-colors duration-300 ${flashingKeys.has(key) ? "text-gold" : "text-parchment"}`}
+                >
+                  {final_}
+                </span>
                 <span className="text-text-muted text-xs ml-1">({formatModifier(final_)})</span>
               </div>
             </div>
@@ -265,8 +399,14 @@ export default function AbilityScoreStep({ state, onChange }: AbilityScoreStepPr
       </div>
 
       {/* Summary table */}
-      <div className="border-t border-bg-elevated/30 pt-4">
-        <h4 className="text-parchment text-xs uppercase tracking-wider mb-3">
+      <div
+        className="border-t border-bg-elevated/30 pt-4 px-4 pb-4 -mx-0 rounded-xl"
+        style={{
+          background:
+            "linear-gradient(135deg, rgba(184,164,120,0.06) 0%, rgba(201,162,39,0.03) 50%, rgba(160,140,100,0.06) 100%)",
+        }}
+      >
+        <h4 className="text-parchment text-xs uppercase tracking-wider mb-3 font-[family-name:var(--font-display)]">
           Ability Score Summary
         </h4>
         <div className="grid grid-cols-6 gap-2">
@@ -277,12 +417,21 @@ export default function AbilityScoreStep({ state, onChange }: AbilityScoreStepPr
             return (
               <div
                 key={key}
-                className="text-center p-3 rounded-xl bg-bg-surface/60 border border-bg-elevated/50"
+                className={`text-center p-3 rounded-xl border transition-all duration-300 ${
+                  flashingKeys.has(key)
+                    ? "bg-gold/10 border-gold/30 shadow-[0_0_8px_rgba(201,162,39,0.15)]"
+                    : "bg-bg-surface/60 border-bg-elevated/50"
+                }`}
               >
+                <div className="text-gold/60 flex justify-center mb-1">{abilityIcons[key]}</div>
                 <div className="text-text-muted text-[10px] uppercase tracking-wider mb-1">
                   {key}
                 </div>
-                <div className="text-parchment text-lg font-bold font-mono">{final_}</div>
+                <div
+                  className={`text-lg font-bold font-mono transition-colors duration-300 ${flashingKeys.has(key) ? "text-gold" : "text-parchment"}`}
+                >
+                  {final_}
+                </div>
                 <div className="text-gold text-xs font-medium">{formatModifier(final_)}</div>
                 {bonus !== 0 && (
                   <div className="text-text-muted text-[10px] mt-1">
